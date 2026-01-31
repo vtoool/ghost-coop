@@ -99,7 +99,7 @@ function Lobby() {
         </div>
         
         {/* Name Input Form */}
-        <div className="w-full max-w-sm px-4 space-y-6 z-10">
+        <div className="space-y-4 z-10" style={{ width: '320px', maxWidth: '90vw' }}>
           <div className="relative">
             <input
               type="text"
@@ -107,7 +107,8 @@ function Lobby() {
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-              className="input-ghost text-center text-base w-full"
+              className="input-ghost text-center text-base"
+              style={{ width: '100%' }}
               autoFocus
             />
           </div>
@@ -116,11 +117,12 @@ function Lobby() {
             onClick={handleJoin}
             disabled={!nameInput.trim()}
             className={cn(
-              "w-full px-8 py-3 rounded-lg text-base font-bold transition-all",
+              "px-6 py-3 rounded-lg text-base font-bold transition-all",
               nameInput.trim()
                 ? "btn-primary animate-pulse-glow"
                 : "btn-ghost opacity-50 cursor-not-allowed"
             )}
+            style={{ width: '100%' }}
           >
             ENTER THE HAUNTED HOUSE
           </button>
