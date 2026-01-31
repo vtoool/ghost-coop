@@ -81,7 +81,7 @@ function Lobby() {
         </div>
         
         {/* Name Input Form */}
-        <div className="w-full max-w-md space-y-6 z-10">
+        <div className="w-full max-w-sm px-4 space-y-6 z-10">
           <div className="relative">
             <input
               type="text"
@@ -89,7 +89,7 @@ function Lobby() {
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-              className="input-ghost text-center text-lg"
+              className="input-ghost text-center text-base w-full"
               autoFocus
             />
           </div>
@@ -98,7 +98,7 @@ function Lobby() {
             onClick={handleJoin}
             disabled={!nameInput.trim()}
             className={cn(
-              "w-full py-4 rounded-lg text-lg font-bold transition-all",
+              "w-full px-8 py-3 rounded-lg text-base font-bold transition-all",
               nameInput.trim()
                 ? "btn-primary animate-pulse-glow"
                 : "btn-ghost opacity-50 cursor-not-allowed"
@@ -109,13 +109,13 @@ function Lobby() {
         </div>
         
         {/* Role Indicator */}
-        <div className="mt-12 z-10">
+        <div className="mt-8 z-10">
           <div className={cn(
-            "room-code",
+            "room-code text-xs",
             isHost() ? "border-[#FF6B35]" : "border-[#00F0FF]"
           )}>
-            <span className="text-[#F0F0F0] text-sm">
-              {isHost() ? 'HOST MODE' : 'JOIN MODE'}
+            <span className="text-[#F0F0F0]/70">
+              {isHost() ? 'You are the Host' : 'Joining existing game...'}
             </span>
           </div>
         </div>
