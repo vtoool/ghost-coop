@@ -33,9 +33,27 @@ function Lobby() {
   
   // Handle name submission
   const handleJoin = () => {
-    if (nameInput.trim()) {
-      me?.setState('profile', { name: nameInput.trim() })
-      me?.setState('ready', false)
+    console.log('handleJoin called, nameInput:', nameInput)
+    console.log('me object:', me)
+    
+    if (!nameInput.trim()) {
+      console.error('No name entered')
+      return
+    }
+    
+    if (!me) {
+      console.error('Playroom player object not initialized!')
+      alert('Connection error. Please refresh the page.')
+      return
+    }
+    
+    try {
+      me.setState('profile', { name: nameInput.trim() })
+      me.setState('ready', false)
+      console.log('Profile set successfully')
+    } catch (error) {
+      console.error('Failed to set profile:', error)
+      alert('Failed to join. Please try again.')
     }
   }
   
