@@ -75,11 +75,11 @@ test.describe('Ecto-Busters Lobby Visual Tests', () => {
     const input = page.locator('input[placeholder*="CALLSIGN" i]')
     await input.fill('TestGhostHunter')
     
-    const enterButton = page.locator('button:has-text("ENTER")')
+    const enterButton = page.locator('button:has-text("HAUNTED HOUSE")')
     await enterButton.click()
     
-    // Wait for lobby to load
-    await page.waitForSelector('.lobby-container', { timeout: 5000 })
+    // Wait for lobby to load (look for h1 since lobby-container class is on div)
+    await page.waitForSelector('h1:has-text("ECTO-BUSTERS")', { timeout: 5000 })
     await page.waitForTimeout(2000)
     
     const screenshotPath = `test-results/lobby-host-${testInfo.project.name}.png`
@@ -123,10 +123,10 @@ test.describe('Ecto-Busters Lobby Visual Tests', () => {
     const input = page.locator('input[placeholder*="CALLSIGN" i]')
     await input.fill('StyleCheck')
     
-    const enterButton = page.locator('button:has-text("ENTER")')
+    const enterButton = page.locator('button:has-text("HAUNTED HOUSE")')
     await enterButton.click()
     
-    await page.waitForSelector('.lobby-container', { timeout: 5000 })
+    await page.waitForSelector('h1:has-text("ECTO-BUSTERS")', { timeout: 5000 })
     await page.waitForTimeout(3000) // Wait for animations
     
     const screenshotPath = `test-results/style-guide-verification-${testInfo.project.name}.png`
