@@ -55,6 +55,12 @@ GameManager (Zustand Store)
 ## ✅ Memory Log (Completed Features)
 
 ### Phase 1: Foundation
+- [x] **Visual Design System**
+  - [x] STYLE_GUIDE.md created with spooky orange theme
+  - [x] Color palette defined (Void Black, Neon Pumpkin, Ectoplasm Cyan)
+  - [x] Typography specified (Creepster, JetBrains Mono)
+  - [x] Animation guidelines (floating, pulsing, grain texture)
+
 - [x] **Environment Setup**
   - [x] Vite + React 19 project initialized
   - [x] Playroom Kit integration with async bootstrapper
@@ -96,7 +102,7 @@ GameManager (Zustand Store)
 ## 🚀 Deployment
 
 **Platform:** Vercel  
-**Live URL:** https://ecto-busters.vercel.app  
+**Live URL:** https://ghost-coop.vercel.app  
 **Pipeline:** `git push` → Vercel build → Live URL  
 **Local Testing:** `npx playwright test` (visual regression)
 
@@ -121,6 +127,7 @@ vercel --prod
 | `src/components/Lobby.jsx` | Universal lobby UI |
 | `tests/visual.spec.js` | Playwright visual tests |
 | `rules.md` | Coding standards and best practices |
+| `STYLE_GUIDE.md` | Visual design system and UI specifications |
 
 ---
 

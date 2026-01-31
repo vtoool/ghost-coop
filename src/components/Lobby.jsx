@@ -10,8 +10,8 @@ function cn(...inputs) {
 }
 
 /**
- * Lobby - Universal UI (Device Agnostic)
- * Handles both Host and Join views
+ * Lobby - Spooky Orange Themed UI
+ * Universal Design: Uses HOST/JOIN terminology (never Desktop/Mobile)
  */
 function Lobby() {
   const players = usePlayersList()
@@ -20,7 +20,6 @@ function Lobby() {
   
   // Local state for name input
   const [nameInput, setNameInput] = useState('')
-  const [hasJoined, setHasJoined] = useState(false)
   
   // Check if player has set a name
   const myProfile = me?.getState('profile')
@@ -37,7 +36,6 @@ function Lobby() {
     if (nameInput.trim()) {
       me?.setState('profile', { name: nameInput.trim() })
       me?.setState('ready', false)
-      setHasJoined(true)
     }
   }
   
@@ -56,76 +54,120 @@ function Lobby() {
   // Get room code from URL hash
   const roomCode = window.location.hash?.slice(1) || 'Unknown'
   
+  // Get animation delay based on index
+  const getAnimationDelay = (index) => {
+    const delays = ['animate-float', 'animate-float-delay-1', 'animate-float-delay-2', 'animate-float-delay-3']
+    return delays[index % delays.length]
+  }
+  
   // Welcome screen - name input
   if (!myName) {
     return (
-      <div className="w-full h-full bg-black flex flex-col items-center justify-center p-6">
-        <h1 className="text-5xl font-bold text-white mb-2 tracking-wider">ECTO-BUSTERS</h1>
-        <p className="text-gray-400 mb-8 text-lg">2-Player Co-op Ghost Hunting</p>
+      <div className="w-full h-full bg-spooky flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Noise overlay */}
+        <div className="noise-overlay" />
         
-        <div className="w-full max-w-md space-y-4">
-          <input
-            type="text"
-            placeholder="Enter your name..."
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-            className="w-full px-6 py-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-white text-lg 
-                       placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-            autoFocus
-          />
+        {/* Title Section */}
+        <div className="text-center mb-8 z-10">
+          <h1 
+            className="font-creepster text-6xl md:text-7xl mb-4 text-glow-orange"
+            style={{ color: '#FF6B35' }}
+          >
+            ECTO-BUSTERS
+          </h1>
+          <p className="font-mono text-lg md:text-xl text-[#00F0FF] tracking-wider animate-flicker">
+            2-Player Co-op Ghost Hunting
+          </p>
+        </div>
+        
+        {/* Name Input Form */}
+        <div className="w-full max-w-md space-y-6 z-10">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="ENTER YOUR CALLSIGN..."
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+              className="input-ghost text-center text-lg"
+              autoFocus
+            />
+          </div>
+          
           <button
             onClick={handleJoin}
             disabled={!nameInput.trim()}
             className={cn(
               "w-full py-4 rounded-lg text-lg font-bold transition-all",
               nameInput.trim()
-                ? "bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"
-                : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                ? "btn-primary animate-pulse-glow"
+                : "btn-ghost opacity-50 cursor-not-allowed"
             )}
           >
-            ENTER
+            ENTER THE HAUNTED HOUSE
           </button>
         </div>
         
-        <p className="text-gray-600 mt-8 text-sm">
-          {isHost() ? 'You are the Host' : 'Joining as Guest'}
-        </p>
+        {/* Role Indicator */}
+        <div className="mt-12 z-10">
+          <div className={cn(
+            "room-code",
+            isHost() ? "border-[#FF6B35]" : "border-[#00F0FF]"
+          )}>
+            <span className="text-[#F0F0F0] text-sm">
+              {isHost() ? 'HOST MODE' : 'JOIN MODE'}
+            </span>
+          </div>
+        </div>
       </div>
     )
   }
   
   // Lobby screen
   return (
-    <div className="lobby-container w-full h-full bg-black flex flex-col p-6">
+    <div className="lobby-container w-full h-full bg-spooky flex flex-col p-4 md:p-6 relative overflow-hidden">
+      {/* Noise overlay */}
+      <div className="noise-overlay" />
+      
       {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-white tracking-wider">ECTO-BUSTERS</h1>
-        <div className="mt-2 inline-block px-4 py-1 bg-gray-900 rounded-full border border-gray-700">
-          <span className="text-gray-400 text-sm">Room Code: </span>
-          <span className="text-white font-mono font-bold text-lg">{roomCode}</span>
+      <div className="text-center mb-4 md:mb-6 z-10">
+        <h1 
+          className="font-creepster text-4xl md:text-5xl tracking-wider text-glow-orange"
+          style={{ color: '#FF6B35' }}
+        >
+          ECTO-BUSTERS
+        </h1>
+        <div className="mt-3 room-code">
+          <span className="text-[#F0F0F0]/60 text-xs uppercase tracking-widest">Room Code: </span>
+          <span className="text-[#FF6B35] font-mono font-bold text-lg tracking-wider">{roomCode}</span>
         </div>
       </div>
       
       {/* QR Code - Only for Host */}
       {isHost() && (
-        <div className="flex flex-col items-center mb-6">
-          <div className="bg-white p-3 rounded-lg">
+        <div className="flex flex-col items-center mb-4 md:mb-6 z-10">
+          <div className="ghost-trap">
             <QRCodeSVG 
               value={window.location.href} 
-              size={180}
+              size={160}
               level="M"
+              bgColor="#0A0A0A"
+              fgColor="#FF6B35"
             />
           </div>
-          <p className="text-gray-400 text-sm mt-2">Scan to join</p>
+          <p className="font-mono text-[#00F0FF] text-sm mt-3 animate-flicker tracking-wider">
+            SCAN TO JOIN AS CONTROLLER
+          </p>
         </div>
       )}
       
       {/* Player List */}
-      <div className="flex-1 bg-gray-900 rounded-lg border border-gray-800 p-4 mb-4 overflow-y-auto">
-        <h2 className="text-gray-400 text-sm font-bold mb-3 uppercase tracking-wider">Players ({players.length})</h2>
-        <div className="space-y-2">
-          {players.map((player) => {
+      <div className="flex-1 bg-[#1A1A1A]/80 rounded-xl border border-[#FF6B35]/30 p-4 mb-4 overflow-y-auto z-10 backdrop-blur-sm">
+        <h2 className="font-mono text-[#F0F0F0]/60 text-xs font-bold mb-4 uppercase tracking-widest">
+          Ghost Hunters ({players.length})
+        </h2>
+        <div className="space-y-3">
+          {players.map((player, index) => {
             const profile = player.getState('profile')
             const ready = player.getState('ready')
             const isMe = player.id === me?.id
@@ -134,52 +176,58 @@ function Lobby() {
               <div 
                 key={player.id}
                 className={cn(
-                  "flex items-center justify-between p-3 rounded-lg border",
-                  isMe ? "bg-gray-800 border-gray-600" : "bg-gray-950 border-gray-800"
+                  "player-card",
+                  getAnimationDelay(index)
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-3 h-3 rounded-full",
-                    ready ? "bg-green-500" : "bg-yellow-500"
-                  )} />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "status-dot",
+                      ready ? "ready" : "waiting"
+                    )} />
+                    <span className={cn(
+                      "font-mono font-medium",
+                      isMe ? "text-[#F0F0F0]" : "text-[#F0F0F0]/70"
+                    )}>
+                      {profile?.name || 'Unknown Entity'}
+                      {isMe && (
+                        <span className="text-[#FF6B35] text-xs ml-2 font-bold">[YOU]</span>
+                      )}
+                    </span>
+                  </div>
                   <span className={cn(
-                    "font-medium",
-                    isMe ? "text-white" : "text-gray-300"
+                    "font-mono text-xs font-bold tracking-wider",
+                    ready ? "text-[#00F0FF] text-glow-cyan" : "text-[#FFD700] animate-flicker"
                   )}>
-                    {profile?.name || 'Unknown'}
-                    {isMe && <span className="text-gray-500 text-sm ml-2">(You)</span>}
+                    {ready ? 'READY' : 'WAITING'}
                   </span>
                 </div>
-                <span className={cn(
-                  "text-sm font-bold",
-                  ready ? "text-green-400" : "text-yellow-400"
-                )}>
-                  {ready ? 'READY' : 'WAITING'}
-                </span>
               </div>
             )
           })}
         </div>
         
         {players.length === 0 && (
-          <p className="text-gray-600 text-center py-4">No players yet...</p>
+          <p className="font-mono text-[#F0F0F0]/30 text-center py-8 text-sm">
+            No paranormal activity detected...
+          </p>
         )}
       </div>
       
       {/* Action Buttons */}
-      <div className="space-y-3">
+      <div className="space-y-3 z-10">
         {/* Ready Button - Everyone can see */}
         <button
           onClick={toggleReady}
           className={cn(
             "w-full py-4 rounded-lg text-lg font-bold transition-all",
             isReady
-              ? "bg-green-600 hover:bg-green-500 text-white"
-              : "bg-yellow-600 hover:bg-yellow-500 text-white"
+              ? "btn-ready"
+              : "btn-ghost"
           )}
         >
-          {isReady ? 'UNREADY' : 'READY UP'}
+          {isReady ? 'CANCEL READY' : 'READY FOR HAUNT'}
         </button>
         
         {/* Start Button - Host Only */}
@@ -188,13 +236,16 @@ function Lobby() {
             onClick={handleStartGame}
             disabled={!allReady}
             className={cn(
-              "w-full py-4 rounded-lg text-lg font-bold transition-all",
+              "w-full py-4 rounded-lg text-lg font-bold transition-all font-mono uppercase tracking-wider",
               allReady
-                ? "bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"
-                : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                ? "btn-primary animate-pulse-glow"
+                : "bg-[#1A1A1A] border-2 border-[#FF6B35]/30 text-[#FF6B35]/50 cursor-not-allowed"
             )}
           >
-            {allReady ? 'START GAME' : `WAITING FOR PLAYERS (${players.filter(p => p.getState('ready')).length}/${players.length})`}
+            {allReady 
+              ? 'START GHOST HUNT' 
+              : `WAITING (${players.filter(p => p.getState('ready')).length}/${players.length})`
+            }
           </button>
         )}
       </div>

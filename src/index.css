@@ -1,29 +1,353 @@
+@import url('https://fonts.googleapis.com/css2?family=Creepster&family=JetBrains+Mono:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Spooky Color Palette */
+  --void-black: #050505;
+  --neon-pumpkin: #FF6B35;
+  --ecto-cyan: #00F0FF;
+  --ghost-white: #F0F0F0;
+  --haunted-purple: #6B35FF;
+  --shadow-gray: #1A1A1A;
+  --deep-orange: #CC5629;
+  
+  /* Glow Effects */
+  --glow-orange: rgba(255, 107, 53, 0.4);
+  --glow-cyan: rgba(0, 240, 255, 0.3);
+  --glow-strong: rgba(255, 107, 53, 0.6);
+}
+
 /* Game Container Resets - Mobile First */
-body, #root {
+html, body, #root {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #000;
+  background: var(--void-black);
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
   overscroll-behavior: none;
 }
 
-/* Remove default margins */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Prevent text selection */
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--ghost-white);
+}
+
+/* Grain/Noise Texture Overlay */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Typography Classes */
+.font-creepster {
+  font-family: 'Creepster', cursive;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px var(--glow-orange),
+      0 0 40px rgba(255, 107, 53, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px var(--glow-strong),
+      0 0 80px rgba(255, 107, 53, 0.4);
+  }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+  52% { opacity: 0.3; }
+  54% { opacity: 1; }
+  90% { opacity: 0.9; }
+}
+
+@keyframes ready-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 30px var(--glow-cyan),
+      0 0 60px rgba(0, 240, 255, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 50px var(--glow-cyan),
+      0 0 100px rgba(0, 240, 255, 0.4);
+  }
+}
+
+/* Animation Utility Classes */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delay-1 {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.animate-float-delay-2 {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.animate-float-delay-3 {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 4.5s;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-flicker {
+  animation: flicker 4s ease-in-out infinite;
+}
+
+.animate-ready-pulse {
+  animation: ready-pulse 2s ease-in-out infinite;
+}
+
+/* Button Styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon-pumpkin) 0%, var(--deep-orange) 100%);
+  border: 2px solid var(--neon-pumpkin);
+  color: var(--void-black);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  box-shadow: 
+    0 0 20px var(--glow-orange),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 40px var(--glow-strong),
+    0 4px 20px rgba(255, 107, 53, 0.3);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 2px solid var(--neon-pumpkin);
+  color: var(--neon-pumpkin);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 107, 53, 0.1);
+  box-shadow: 0 0 30px var(--glow-orange);
+}
+
+.btn-ready {
+  background: linear-gradient(135deg, var(--ecto-cyan) 0%, #00B8C4 100%);
+  border: 2px solid var(--ecto-cyan);
+  color: var(--void-black);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  box-shadow: 
+    0 0 30px var(--glow-cyan),
+    0 0 60px rgba(0, 240, 255, 0.2);
+  animation: ready-pulse 2s ease-in-out infinite;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-ready:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 50px var(--glow-cyan),
+    0 0 100px rgba(0, 240, 255, 0.4);
+}
+
+/* Player Card Styles */
+.player-card {
+  background: linear-gradient(135deg, var(--shadow-gray) 0%, #0D0D0D 100%);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: float 6s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.player-card:hover {
+  border-color: rgba(255, 107, 53, 0.6);
+  box-shadow: 
+    0 8px 30px rgba(255, 107, 53, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Ghost Trap QR Container */
+.ghost-trap {
+  position: relative;
+  background: #0A0A0A;
+  border: 3px solid var(--neon-pumpkin);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 
+    0 0 40px var(--glow-orange),
+    inset 0 0 60px rgba(255, 107, 53, 0.05);
+}
+
+.ghost-trap::before,
+.ghost-trap::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--neon-pumpkin);
+}
+
+.ghost-trap::before {
+  top: -3px;
+  left: -3px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.ghost-trap::after {
+  bottom: -3px;
+  right: -3px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Status Indicators */
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.waiting {
+  background: #FFD700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  animation: flicker 2s ease-in-out infinite;
+}
+
+.status-dot.ready {
+  background: var(--ecto-cyan);
+  box-shadow: 0 0 15px var(--glow-cyan);
+}
+
+/* Input Styles */
+.input-ghost {
+  background: var(--shadow-gray);
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  color: var(--ghost-white);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.input-ghost:focus {
+  outline: none;
+  border-color: var(--neon-pumpkin);
+  box-shadow: 0 0 20px var(--glow-orange);
+}
+
+.input-ghost::placeholder {
+  color: rgba(240, 240, 240, 0.4);
+}
+
+/* Room Code Badge */
+.room-code {
+  display: inline-block;
+  background: var(--shadow-gray);
+  border: 1px solid rgba(255, 107, 53, 0.5);
+  border-radius: 9999px;
+  padding: 0.5rem 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Spooky Background Gradient */
+.bg-spooky {
+  background: 
+    radial-gradient(ellipse at center, rgba(255, 107, 53, 0.1) 0%, transparent 70%),
+    var(--void-black);
+}
+
+/* Glow Text Effects */
+.text-glow-orange {
+  text-shadow: 0 0 20px var(--glow-orange);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 20px var(--glow-cyan);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--shadow-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-pumpkin);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--deep-orange);
 }
