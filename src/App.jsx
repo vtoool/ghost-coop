@@ -1,35 +1,32 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useMultiplayerState } from 'playroomkit'
+import Lobby from './components/Lobby'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+// Placeholder Game component - will be replaced with actual 3D game
+function Game() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="w-full h-full flex items-center justify-center bg-black text-white">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">GAME STARTED!</h1>
+        <p className="text-gray-400">The 3D world will appear here...</p>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   )
+}
+
+/**
+ * App - The View Manager
+ * Controls which screen to show based on game state
+ */
+function App() {
+  // Subscribe to Playroom's global game state
+  const [gameStart] = useMultiplayerState('gameStart', false)
+
+  // If game has started, show Game. Otherwise, show Lobby.
+  if (gameStart) {
+    return <Game />
+  }
+
+  return <Lobby />
 }
 
 export default App
