@@ -21,6 +21,7 @@ function Lobby() {
   // Local state for name input
   const [nameInput, setNameInput] = useState('')
   const [localName, setLocalName] = useState(null) // Backup local state
+  const [linkCopied, setLinkCopied] = useState(false) // For copy button feedback
    
   // Check if player has set a name
   const myProfile = me?.getState('profile')
@@ -166,8 +167,8 @@ function Lobby() {
         </div>
       </div>
       
-      {/* QR Code - Only for Host */}
-      {isHost() && (
+      {/* QR Code - Show on all devices when less than 2 players */}
+      {players.length < 2 && (
         <div className="flex flex-col items-center mb-4 md:mb-6 z-10">
           <div className="ghost-trap">
             <QRCodeSVG 
@@ -189,11 +190,15 @@ function Lobby() {
         <button
           onClick={() => {
             navigator.clipboard.writeText(window.location.href)
-            alert('Room link copied! Share it with a friend.')
+            setLinkCopied(true)
+            setTimeout(() => setLinkCopied(false), 2000) // Reset after 2 seconds
           }}
-          className="btn-ghost text-xs py-2 px-4"
+          className={cn(
+            "text-xs py-2 px-4 transition-all",
+            linkCopied ? "btn-ready" : "btn-ghost"
+          )}
         >
-          COPY ROOM LINK
+          {linkCopied ? 'LINK COPIED!' : 'COPY ROOM LINK'}
         </button>
       </div>
       
