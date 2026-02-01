@@ -22,10 +22,11 @@ function Lobby() {
   const [nameInput, setNameInput] = useState('')
   const [localName, setLocalName] = useState(null) // Backup local state
   const [linkCopied, setLinkCopied] = useState(false) // For copy button feedback
+  const [hasEnteredName, setHasEnteredName] = useState(false) // Track if user entered name this session
    
   // Check if player has set a name
   const myProfile = me?.getState('profile')
-  const myName = myProfile?.name || localName
+  const myName = (hasEnteredName && (myProfile?.name || localName)) || null
   
   // Check ready status
   const isReady = me?.getState('ready') || false
@@ -53,6 +54,7 @@ function Lobby() {
       me.setState('profile', { name: nameInput.trim() })
       me.setState('ready', false)
       setLocalName(nameInput.trim()) // Force re-render with local state
+      setHasEnteredName(true) // Mark that user has entered name this session
       console.log('Profile set successfully')
     } catch (error) {
       console.error('Failed to set profile:', error)
