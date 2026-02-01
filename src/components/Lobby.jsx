@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePlayersList, isHost, myPlayer, useMultiplayerState } from 'playroomkit'
 import { QRCodeSVG } from 'qrcode.react'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { getStoredProfile, setStoredProfile, clearStoredProfile } from '../utils/playerStorage'
 
 // Utility for cleaner Tailwind classes
 function cn(...inputs) {
@@ -10,7 +11,7 @@ function cn(...inputs) {
 }
 
 /**
- * Lobby - Spooky Orange Themed UI
+ * Lobby - Spooky Orange Themed UI with LocalStorage Persistence
  * Universal Design: Uses HOST/JOIN terminology (never Desktop/Mobile)
  */
 function Lobby() {
@@ -18,15 +19,56 @@ function Lobby() {
   const me = myPlayer()
   const [gameStart, setGameStart] = useMultiplayerState('gameStart', false)
   
-  // Local state for name input
+  // Track player join times to show "Joining..." for new players
+  const playerJoinTimes = useRef(new Map())
+  
+  // Local state
   const [nameInput, setNameInput] = useState('')
-  const [localName, setLocalName] = useState(null) // Backup local state
-  const [linkCopied, setLinkCopied] = useState(false) // For copy button feedback
-  const [hasEnteredName, setHasEnteredName] = useState(false) // Track if user entered name this session
-   
-  // Check if player has set a name
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(true) // Track if we're auto-restoring profile
+  
+  // Get stored profile from localStorage
+  const storedProfile = getStoredProfile()
+  
+  // Check if player has set a name (from Playroom state or localStorage during restore)
   const myProfile = me?.getState('profile')
-  const myName = (hasEnteredName && (myProfile?.name || localName)) || null
+  const myName = myProfile?.name || null
+  
+  // Track player join times
+  useEffect(() => {
+    players.forEach(player => {
+      if (!playerJoinTimes.current.has(player.id)) {
+        playerJoinTimes.current.set(player.id, Date.now())
+      }
+    })
+  }, [players])
+  
+  // Auto-restore profile from localStorage when component mounts
+  useEffect(() => {
+    const restoreProfile = async () => {
+      if (storedProfile?.name && me && !me.getState('profile')?.name) {
+        console.log('Auto-restoring profile from localStorage:', storedProfile.name)
+        try {
+          me.setState('profile', storedProfile)
+          me.setState('ready', false)
+        } catch (error) {
+          console.error('Failed to restore profile:', error)
+        }
+      }
+      setIsRestoring(false)
+    }
+    
+    // Small delay to ensure Playroom is fully initialized
+    const timer = setTimeout(restoreProfile, 500)
+    return () => clearTimeout(timer)
+  }, [me, storedProfile])
+  
+  // Pre-fill name input with stored name
+  useEffect(() => {
+    if (storedProfile?.name && !nameInput) {
+      setNameInput(storedProfile.name)
+    }
+  }, [storedProfile, nameInput])
   
   // Check ready status
   const isReady = me?.getState('ready') || false
@@ -37,7 +79,6 @@ function Lobby() {
   // Handle name submission
   const handleJoin = () => {
     console.log('handleJoin called, nameInput:', nameInput)
-    console.log('me object:', me)
     
     if (!nameInput.trim()) {
       console.error('No name entered')
@@ -51,15 +92,21 @@ function Lobby() {
     }
     
     try {
-      me.setState('profile', { name: nameInput.trim() })
+      const profile = { name: nameInput.trim() }
+      me.setState('profile', profile)
       me.setState('ready', false)
-      setLocalName(nameInput.trim()) // Force re-render with local state
-      setHasEnteredName(true) // Mark that user has entered name this session
-      console.log('Profile set successfully')
+      setStoredProfile(profile) // Persist to localStorage
+      console.log('Profile set and saved to localStorage:', profile.name)
     } catch (error) {
       console.error('Failed to set profile:', error)
       alert('Failed to join. Please try again.')
     }
+  }
+  
+  // Handle leaving room
+  const handleLeaveRoom = () => {
+    clearStoredProfile()
+    window.location.reload() // Reload to create fresh session
   }
   
   // Toggle ready status
@@ -83,8 +130,15 @@ function Lobby() {
     return delays[index % delays.length]
   }
   
-  // Welcome screen - name input
-  if (!myName) {
+  // Check if player is still in "joining" phase (first 3 seconds)
+  const isPlayerJoining = (playerId) => {
+    const joinTime = playerJoinTimes.current.get(playerId)
+    if (!joinTime) return false
+    return Date.now() - joinTime < 3000 // 3 second grace period
+  }
+  
+  // Welcome screen - name input (show if no name set yet)
+  if (!myName && !isRestoring) {
     return (
       <div className="w-full h-full bg-spooky flex flex-col items-center justify-center p-6 relative overflow-hidden">
         {/* Noise overlay */}
@@ -148,6 +202,19 @@ function Lobby() {
     )
   }
   
+  // Loading state while restoring
+  if (isRestoring) {
+    return (
+      <div className="w-full h-full bg-spooky flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="noise-overlay" />
+        <div className="text-center z-10">
+          <h1 className="font-creepster text-4xl text-[#FF6B35] mb-4">ECTO-BUSTERS</h1>
+          <p className="font-mono text-[#00F0FF] animate-pulse">Restoring your profile...</p>
+        </div>
+      </div>
+    )
+  }
+  
   // Lobby screen
   return (
     <div className="lobby-container w-full h-full bg-spooky flex flex-col items-center p-4 md:p-6 relative overflow-hidden">
@@ -193,7 +260,7 @@ function Lobby() {
           onClick={() => {
             navigator.clipboard.writeText(window.location.href)
             setLinkCopied(true)
-            setTimeout(() => setLinkCopied(false), 2000) // Reset after 2 seconds
+            setTimeout(() => setLinkCopied(false), 2000)
           }}
           className={cn(
             "text-xs py-2 px-4 transition-all",
@@ -214,6 +281,33 @@ function Lobby() {
             const profile = player.getState('profile')
             const ready = player.getState('ready')
             const isMe = player.id === me?.id
+            const joining = isPlayerJoining(player.id)
+            const hasName = profile?.name
+            
+            // Skip rendering players without names during joining phase
+            if (!hasName && joining) {
+              return (
+                <div 
+                  key={player.id}
+                  className={cn(
+                    "player-card",
+                    getAnimationDelay(index)
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="status-dot waiting" />
+                      <span className="font-mono font-medium text-[#F0F0F0]/50 animate-pulse">
+                        Joining...
+                      </span>
+                    </div>
+                    <span className="font-mono text-xs font-bold tracking-wider text-[#F0F0F0]/50">
+                      CONNECTING
+                    </span>
+                  </div>
+                </div>
+              )
+            }
             
             return (
               <div 
@@ -233,7 +327,7 @@ function Lobby() {
                       "font-mono font-medium",
                       isMe ? "text-[#F0F0F0]" : "text-[#F0F0F0]/70"
                     )}>
-                      {profile?.name || 'Unknown Entity'}
+                      {profile?.name || 'Joining...'}
                       {isMe && (
                         <span className="text-[#FF6B35] text-xs ml-2 font-bold">[YOU]</span>
                       )}
@@ -291,6 +385,14 @@ function Lobby() {
             }
           </button>
         )}
+        
+        {/* Leave Room Button */}
+        <button
+          onClick={handleLeaveRoom}
+          className="w-full py-2 rounded-lg text-sm font-bold transition-all font-mono bg-[#1A1A1A] border border-[#F0F0F0]/30 text-[#F0F0F0]/70 hover:bg-[#1A1A1A]/80"
+        >
+          LEAVE ROOM
+        </button>
       </div>
       </div>{/* Close max-w-md container */}
     </div>
