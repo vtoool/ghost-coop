@@ -20,10 +20,11 @@ function Lobby() {
   
   // Local state for name input
   const [nameInput, setNameInput] = useState('')
-  
+  const [localName, setLocalName] = useState(null) // Backup local state
+   
   // Check if player has set a name
   const myProfile = me?.getState('profile')
-  const myName = myProfile?.name
+  const myName = myProfile?.name || localName
   
   // Check ready status
   const isReady = me?.getState('ready') || false
@@ -50,6 +51,7 @@ function Lobby() {
     try {
       me.setState('profile', { name: nameInput.trim() })
       me.setState('ready', false)
+      setLocalName(nameInput.trim()) // Force re-render with local state
       console.log('Profile set successfully')
     } catch (error) {
       console.error('Failed to set profile:', error)
