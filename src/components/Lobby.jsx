@@ -148,7 +148,7 @@ function Lobby() {
   // Lobby screen
   return (
     <div className="lobby-container w-full h-full bg-spooky flex flex-col items-center p-4 md:p-6 relative overflow-hidden">
-      <div className="w-full max-w-md flex flex-col h-full">
+      <div className="flex flex-col h-full" style={{ width: '100%', maxWidth: '380px' }}>
       {/* Noise overlay */}
       <div className="noise-overlay" />
       
@@ -198,7 +198,7 @@ function Lobby() {
       </div>
       
       {/* Player List */}
-      <div className="flex-1 bg-[#1A1A1A]/80 rounded-xl border border-[#FF6B35]/30 p-4 mb-4 overflow-y-auto z-10 backdrop-blur-sm">
+      <div className="flex-1 bg-[#1A1A1A]/80 rounded-xl border border-[#FF6B35]/30 p-4 mb-4 overflow-y-auto z-10 backdrop-blur-sm w-full">
         <h2 className="font-mono text-[#F0F0F0]/60 text-xs font-bold mb-4 uppercase tracking-widest">
           Ghost Hunters ({players.length})
         </h2>
@@ -257,7 +257,7 @@ function Lobby() {
         <button
           onClick={toggleReady}
           className={cn(
-            "w-full py-4 rounded-lg text-lg font-bold transition-all",
+            "py-4 rounded-lg text-lg font-bold transition-all w-full",
             isReady
               ? "btn-ready"
               : "btn-ghost"
