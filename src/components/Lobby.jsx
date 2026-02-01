@@ -147,7 +147,8 @@ function Lobby() {
   
   // Lobby screen
   return (
-    <div className="lobby-container w-full h-full bg-spooky flex flex-col p-4 md:p-6 relative overflow-hidden">
+    <div className="lobby-container w-full h-full bg-spooky flex flex-col items-center p-4 md:p-6 relative overflow-hidden">
+      <div className="w-full max-w-md flex flex-col h-full">
       {/* Noise overlay */}
       <div className="noise-overlay" />
       
@@ -171,17 +172,30 @@ function Lobby() {
           <div className="ghost-trap">
             <QRCodeSVG 
               value={window.location.href} 
-              size={160}
+              size={140}
               level="M"
               bgColor="#0A0A0A"
               fgColor="#FF6B35"
             />
           </div>
-          <p className="font-mono text-[#00F0FF] text-sm mt-3 animate-flicker tracking-wider">
+          <p className="font-mono text-[#00F0FF] text-xs mt-2 animate-flicker tracking-wider text-center">
             SCAN TO JOIN AS CONTROLLER
           </p>
         </div>
       )}
+      
+      {/* Share Room - For Everyone */}
+      <div className="flex flex-col items-center mb-4 z-10">
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.href)
+            alert('Room link copied! Share it with a friend.')
+          }}
+          className="btn-ghost text-xs py-2 px-4"
+        >
+          COPY ROOM LINK
+        </button>
+      </div>
       
       {/* Player List */}
       <div className="flex-1 bg-[#1A1A1A]/80 rounded-xl border border-[#FF6B35]/30 p-4 mb-4 overflow-y-auto z-10 backdrop-blur-sm">
@@ -271,6 +285,7 @@ function Lobby() {
           </button>
         )}
       </div>
+      </div>{/* Close max-w-md container */}
     </div>
   )
 }
