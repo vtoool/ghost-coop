@@ -20,13 +20,29 @@ function Fallback({ error }) {
 
 function ClickToPlay({ isHunter, isTouchDevice }) {
   const [clicked, setClicked] = useState(false)
+  const [roles] = useMultiplayerState('roles')
+  const me = myPlayer()
+  const isHunterConfirmed = roles ? roles.hunter === me?.id : null
   
-  if (!isHunter || isTouchDevice || clicked) return null
+  if (clicked) return null
+  
+  if (isHunterConfirmed === null) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black">
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-orange-500 mb-4">LOADING MISSION...</h2>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!isHunterConfirmed || isTouchDevice) return null
   
   return (
     <div 
       className="fixed inset-0 flex items-center justify-center z-50 cursor-pointer bg-black/70 pointer-events-auto"
       onClick={() => setClicked(true)}
+    >
     >
       <div className="text-center pointer-events-none">
         <h2 className="text-4xl font-bold text-orange-500 mb-4">CLICK TO CAPTURE MOUSE</h2>
@@ -46,7 +62,7 @@ export default function Game() {
   
   const [roles] = useMultiplayerState('roles')
   const me = myPlayer()
-  const isHunter = roles?.hunter === me?.id
+  const isHunter = roles ? roles.hunter === me?.id : false
   const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
   
   return (

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
@@ -7,7 +7,6 @@ import * as THREE from 'three'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
-  const meshGroupRef = useRef(null)
   const controlsRef = useRef(null)
   const { camera } = useThree()
   
@@ -18,9 +17,8 @@ export default function HunterController() {
   
   const { scene } = useGLTF('/models/characters/character-male-a.glb')
   
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone()
-    clone.traverse((child) => {
+  useEffect(() => {
+    scene.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
           color: '#FF6B35',
@@ -29,7 +27,6 @@ export default function HunterController() {
         })
       }
     })
-    return clone
   }, [scene])
   
   useEffect(() => {
@@ -61,6 +58,8 @@ export default function HunterController() {
     
     const player = myPlayer()
     if (!player) return
+    
+    console.log("Hunter controls active", true)
     
     const { forward, backward, left, right } = getKeyboardControls()
     const moveDirection = new THREE.Vector3(0, 0, 0)
@@ -99,11 +98,6 @@ export default function HunterController() {
         y: rigidBodyRef.current.linvel().y,
         z: targetVelocity.z
       }, true)
-      
-      const targetRotation = Math.atan2(moveDirection.x, moveDirection.z)
-      if (meshGroupRef.current) {
-        meshGroupRef.current.rotation.y = targetRotation
-      }
     } else {
       rigidBodyRef.current.setLinvel({
         x: 0,
@@ -114,10 +108,6 @@ export default function HunterController() {
     
     const pos = rigidBodyRef.current.translation()
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
-    
-    if (meshGroupRef.current) {
-      meshGroupRef.current.position.set(pos.x, pos.y - 0.9, pos.z)
-    }
   })
   
   return (
@@ -136,11 +126,12 @@ export default function HunterController() {
         angularDamping={1}
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.9, 0]} />
+        <primitive 
+          object={scene} 
+          position={[0, -0.9, 0]} 
+          scale={0.6} 
+        />
       </RigidBody>
-      
-      <group ref={meshGroupRef}>
-        <primitive object={clonedScene} scale={0.6} />
-      </group>
     </>
   )
 }
