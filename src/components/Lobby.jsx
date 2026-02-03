@@ -29,6 +29,10 @@ function Lobby() {
   const me = myPlayer()
   const [, setGameStart] = useMultiplayerState('gameStart')
   
+  // Use reactive state for profile - this triggers re-renders
+  const [myProfile, setMyProfileState] = useMultiplayerState(`player_${me?.id}_profile`, null)
+  const [isReady, setIsReady] = useMultiplayerState(`player_${me?.id}_ready`, false)
+  
   // Get stored profile from localStorage
   const storedProfile = getStoredProfile()
   
@@ -36,32 +40,46 @@ function Lobby() {
   const [nameInput, setNameInput] = useState(() => storedProfile?.name || '')
   const [linkCopied, setLinkCopied] = useState(false)
   
-  // Get current player state
-  const myProfile = me.getState('profile')
+  // Derive myName from profile state
   const myName = myProfile?.name || null
   
   // Auto-restore profile if exists
   useEffect(() => {
-    if (storedProfile?.name && !myName) {
+    if (storedProfile?.name && !myName && me) {
+      // Set in Playroom state
       me.setState('profile', storedProfile)
       me.setState('ready', false)
+      // Also set in reactive state to trigger re-render
+      setMyProfileState(storedProfile)
+      setIsReady(false)
     }
-  }, [storedProfile?.name, myName, me])
-  
-  // Get current ready status
-  const isReady = me.getState('ready') || false
+  }, [storedProfile, myName, me, setMyProfileState, setIsReady])
   
   // Check if all players are ready
   const allReady = players.length > 0 && players.every(p => p.getState('ready'))
   
   // Handle name submission
   const handleJoin = () => {
-    if (!nameInput.trim()) return
+    console.log('[Lobby] handleJoin clicked, nameInput:', nameInput)
+    if (!nameInput.trim()) {
+      console.log('[Lobby] No name entered, returning')
+      return
+    }
     
     const profile = { name: nameInput.trim() }
+    console.log('[Lobby] Setting profile:', profile)
+    
+    // Set in Playroom state (for multiplayer sync)
     me.setState('profile', profile)
     me.setState('ready', false)
+    
+    // Set in reactive state (to trigger React re-render)
+    setMyProfileState(profile)
+    setIsReady(false)
+    
+    // Persist to localStorage
     setStoredProfile(profile)
+    console.log('[Lobby] Profile set successfully')
   }
   
   // Handle leaving room
@@ -72,7 +90,11 @@ function Lobby() {
   
   // Toggle ready status
   const toggleReady = () => {
-    me.setState('ready', !isReady)
+    const newReady = !isReady
+    // Set in Playroom state (for multiplayer sync)
+    me.setState('ready', newReady)
+    // Set in reactive state (to trigger React re-render)
+    setIsReady(newReady)
   }
   
   // Host starts the game
