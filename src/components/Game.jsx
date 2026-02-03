@@ -74,7 +74,7 @@ export default function Game() {
         >
           <Suspense fallback={null}>
             <ErrorBoundary FallbackComponent={Fallback}>
-              <Physics debug>
+              <Physics>
                 <GameWorld />
               </Physics>
             </ErrorBoundary>
