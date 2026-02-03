@@ -1,12 +1,12 @@
 import { PerspectiveCamera, OrthographicCamera } from '@react-three/drei'
-import { RigidBody } from '@react-three/rapier'
+import HunterController from './HunterController'
 
 /**
  * RoleManager - Role-based View Logic
  * 
  * Renders different cameras and avatars based on player role:
- * - Hunter: 3rd person perspective camera + red avatar box
- * - Operator: Top-down orthographic camera (no avatar)
+ * - Hunter: 3rd person perspective camera + full HunterController (GLB + Physics + Controls)
+ * - Operator: Top-down orthographic camera (no avatar, sees Hunter synced position)
  */
 export default function RoleManager({ roles, playerId }) {
   const isHunter = roles?.hunter === playerId
@@ -18,13 +18,8 @@ export default function RoleManager({ roles, playerId }) {
         {/* Hunter Camera - 3rd person view looking forward */}
         <PerspectiveCamera makeDefault position={[0, 5, 10]} rotation={[-0.2, 0, 0]} />
 
-        {/* Hunter Avatar - Red box at ground level */}
-        <RigidBody type="dynamic" position={[0, 1, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[1, 2, 1]} />
-            <meshStandardMaterial color="#FF6B35" />
-          </mesh>
-        </RigidBody>
+        {/* Hunter Avatar - Full controller with GLB, physics, and dual-input */}
+        <HunterController />
       </>
     )
   }
@@ -42,6 +37,7 @@ export default function RoleManager({ roles, playerId }) {
           rotation={[-Math.PI / 2, 0, 0]}
         />
         {/* Operator has no avatar - they are a ghost in the machine */}
+        {/* Hunter position is synced via Playroom state and can be rendered here as a marker */}
       </>
     )
   }
