@@ -128,7 +128,7 @@ export default function HunterController() {
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.9, 0]} />
         
         <Center bottom position={[0, 0.1, 0]}>
-          <primitive object={clonedScene} scale={0.6} />
+          <primitive object={scene} scale={0.6} />
         </Center>
       </RigidBody>
     </>
