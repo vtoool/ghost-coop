@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { KeyboardControls } from '@react-three/drei'
-import { Suspense, useMemo } from 'react'
+import { Suspense, useMemo, useState, useEffect } from 'react'
 import { Joystick, myPlayer, useMultiplayerState } from 'playroomkit'
 import { ErrorBoundary } from 'react-error-boundary'
 import GameWorld from '../experience/GameWorld'
@@ -15,6 +15,27 @@ function Fallback({ error, resetErrorBoundary }) {
         <meshBasicMaterial color="orange" wireframe />
       </mesh>
     </group>
+  )
+}
+
+/**
+ * ClickToPlay - Overlay for pointer lock on desktop Hunter
+ */
+function ClickToPlay({ isHunter, isTouchDevice }) {
+  const [clicked, setClicked] = useState(false)
+  
+  if (!isHunter || isTouchDevice || clicked) return null
+  
+  return (
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 cursor-pointer bg-black/50"
+      onClick={() => setClicked(true)}
+    >
+      <div className="text-center">
+        <h2 className="text-4xl font-bold text-orange-500 mb-4">CLICK TO CAPTURE MOUSE</h2>
+        <p className="text-white text-lg">Click anywhere to start controlling your Hunter</p>
+      </div>
+    </div>
   )
 }
 
@@ -75,6 +96,9 @@ export default function Game() {
           }}
         />
       )}
+      
+      {/* Click to capture mouse overlay for desktop Hunter */}
+      <ClickToPlay isHunter={isHunter} isTouchDevice={isTouchDevice} />
     </div>
   )
 }

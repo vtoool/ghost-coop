@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
@@ -29,6 +29,22 @@ export default function Environment() {
   // Load GLB assets
   const gravestoneModel = useGLTF('/models/environment/gravestone-cross.glb')
   const pillarModel = useGLTF('/models/environment/pillar-large.glb')
+  
+  // Strip textures from loaded models to prevent 404 console errors
+  useEffect(() => {
+    gravestoneModel.scene.traverse((child) => {
+      if (child.isMesh) {
+        child.material.map = null
+        child.material.needsUpdate = true
+      }
+    })
+    pillarModel.scene.traverse((child) => {
+      if (child.isMesh) {
+        child.material.map = null
+        child.material.needsUpdate = true
+      }
+    })
+  }, [gravestoneModel, pillarModel])
   
   // Generate 30 random props (done once with seeded random)
   const props = useMemo(() => {

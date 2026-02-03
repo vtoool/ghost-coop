@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
@@ -21,14 +21,26 @@ export default function HunterController() {
   const controlsRef = useRef(null)
   const { camera } = useThree()
   
-  // Load character model and clone it once
+  // Load character model
   const { scene } = useGLTF('/models/characters/character-male-a.glb')
+  
+  // Strip textures and apply material
+  useEffect(() => {
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        child.material.map = null
+        child.material.needsUpdate = true
+        child.castShadow = true
+        child.receiveShadow = true
+      }
+    })
+  }, [scene])
+  
+  // Create cloned scene with neon material
   const clonedScene = useMemo(() => {
     const clone = scene.clone()
     clone.traverse((child) => {
       if (child.isMesh) {
-        child.material.map = null
-        child.material.needsUpdate = true
         child.material = new THREE.MeshStandardMaterial({
           color: '#FF6B35',
           emissive: '#FF6B35',
@@ -154,11 +166,11 @@ export default function HunterController() {
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.9, 0]} />
         <group ref={characterRef}>
-          {/* Character Model */}
+          {/* Character Model - positioned to align feet with capsule bottom */}
           <primitive 
             object={clonedScene} 
             scale={1.5}
-            position={[0, -1, 0]}
+            position={[0, -0.9, 0]}
           />
         </group>
       </RigidBody>
