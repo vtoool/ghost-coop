@@ -44,28 +44,72 @@ function Lobby() {
   const myName = myProfile?.name || null
   const isReady = me.getState('ready') || false
   
-  // Auto-assign roles when second player joins (Host only)
+  // CRITICAL: Reactive host check - must be computed every render
+  const amIHost = isHost()
+  
+  // Aggressive Role Assignment & Host Migration Safety Net
   useEffect(() => {
-    if (isHost() && players.length === 2 && !roles.hunter && !roles.operator) {
-      const hostId = me.id
-      const joinerId = players.find(p => p.id !== hostId)?.id
+    // Only Host manages roles to avoid conflicts
+    if (!amIHost) {
+      console.log('[Lobby] Not host, skipping role management')
+      return
+    }
+    
+    console.log('[Lobby] Host checking roles. Players:', players.length, 'Current roles:', roles)
+    
+    // Find other player (if exists)
+    const otherPlayer = players.find(p => p.id !== me.id)
+    const otherPlayerId = otherPlayer?.id
+    
+    // CASE A: Auto-Assign Roles when 2nd player joins
+    if (players.length === 2 && otherPlayerId) {
+      // If roles are empty or invalid, assign fresh
+      const needsAssignment = !roles.hunter || !roles.operator ||
+        (roles.hunter !== me.id && roles.hunter !== otherPlayerId) ||
+        (roles.operator !== me.id && roles.operator !== otherPlayerId)
       
-      if (joinerId) {
-        console.log('[Lobby] Auto-assigning roles: Host=Operator, Joiner=Hunter')
-        const newRoles = {
-          operator: hostId,
-          hunter: joinerId
-        }
-        setRoles(newRoles)
+      if (needsAssignment) {
+        console.log('[Lobby] Auto-assigning: Host=Operator, Joiner=Hunter')
+        setRoles({
+          operator: me.id,
+          hunter: otherPlayerId
+        })
       }
     }
-  }, [players.length, roles.hunter, roles.operator, isHost, me.id, setRoles])
+    
+    // CASE B: Host Migration / Solo Play Cleanup
+    if (players.length === 1) {
+      // I'm the only player and I'm host
+      // Clear the other role slot since that player left
+      const myCurrentRole = roles.hunter === me.id ? 'hunter' : 
+                           roles.operator === me.id ? 'operator' : null
+      
+      if (myCurrentRole === 'hunter' && roles.operator && roles.operator !== me.id) {
+        console.log('[Lobby] Solo mode: Clearing departed operator')
+        setRoles({ hunter: me.id, operator: null })
+      } else if (myCurrentRole === 'operator' && roles.hunter && roles.hunter !== me.id) {
+        console.log('[Lobby] Solo mode: Clearing departed hunter')
+        setRoles({ hunter: null, operator: me.id })
+      } else if (!myCurrentRole) {
+        // I have no role, assign myself as operator by default
+        console.log('[Lobby] Solo mode: Assigning self as Operator')
+        setRoles({ hunter: null, operator: me.id })
+      }
+    }
+    
+    // CASE C: Clear all roles if everyone left (edge case)
+    if (players.length === 0 && (roles.hunter || roles.operator)) {
+      console.log('[Lobby] Everyone left, clearing roles')
+      setRoles({ hunter: null, operator: null })
+    }
+    
+  }, [players, amIHost, me.id, roles.hunter, roles.operator, setRoles])
   
   // Check if all players are ready
   const allReady = players.length > 0 && players.every(p => p.getState('ready'))
   
-  // Check if roles are assigned (both slots filled)
-  const rolesAssigned = roles.hunter && roles.operator
+  // Check if roles are assigned (both slots filled for 2-player game)
+  const rolesAssigned = roles.hunter && roles.operator && players.length === 2
   
   // Get player names for role cards
   const getPlayerName = (playerId) => {
@@ -113,7 +157,7 @@ function Lobby() {
   
   // Swap roles function (Host only)
   const swapRoles = () => {
-    if (!isHost()) return
+    if (!amIHost) return
     
     console.log('[Lobby] Swapping roles')
     const newRoles = {
@@ -125,7 +169,7 @@ function Lobby() {
   
   // Host starts the game
   const handleStartGame = () => {
-    if (isHost() && allReady && rolesAssigned) {
+    if (amIHost && allReady && rolesAssigned) {
       setGamePhase('playing')
       setGameStart(true)
     }
@@ -184,14 +228,15 @@ function Lobby() {
           </button>
         </div>
         
-        {/* Role Indicator */}
+        {/* Role Indicator with Crown for Host */}
         <div className="mt-8 z-10">
           <div className={cn(
-            "room-code text-xs",
-            isHost() ? "border-[#FF6B35]" : "border-[#00F0FF]"
+            "room-code text-xs flex items-center gap-2",
+            amIHost ? "border-[#FF6B35]" : "border-[#00F0FF]"
           )}>
+            {amIHost && <span className="text-lg">👑</span>}
             <span className="text-[#F0F0F0]/70">
-              {isHost() ? 'You are the Host' : 'Joining existing game...'}
+              {amIHost ? 'You are the Host' : 'Joining existing game...'}
             </span>
           </div>
         </div>
@@ -205,11 +250,21 @@ function Lobby() {
       <div className="flex flex-col h-full" style={{ width: '100%', maxWidth: '480px' }}>
         <div className="noise-overlay" />
         
-        {/* Header */}
+        {/* Header with Host Crown */}
         <div className="text-center mb-4 md:mb-6 z-10">
-          <h1 className="font-creepster text-4xl md:text-5xl tracking-wider text-glow-orange" style={{ color: '#FF6B35' }}>
-            ECTO-BUSTERS
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            {amIHost && (
+              <span className="text-2xl animate-pulse" title="Host">👑</span>
+            )}
+            <h1 className="font-creepster text-4xl md:text-5xl tracking-wider text-glow-orange" style={{ color: '#FF6B35' }}>
+              ECTO-BUSTERS
+            </h1>
+            {amIHost && (
+              <span className="text-xs font-mono bg-[#FF6B35] text-[#050505] px-2 py-1 rounded font-bold">
+                HOST
+              </span>
+            )}
+          </div>
           <div className="mt-3 room-code">
             <span className="text-[#F0F0F0]/60 text-xs uppercase tracking-widest">Room Code: </span>
             <span className="text-[#FF6B35] font-mono font-bold text-lg tracking-wider">{roomCode}</span>
@@ -293,8 +348,8 @@ function Lobby() {
               </div>
             </div>
             
-            {/* Role Swap Controls */}
-            {isHost() ? (
+            {/* Role Swap Controls - Now with explicit amIHost check */}
+            {amIHost ? (
               <button
                 onClick={swapRoles}
                 disabled={!rolesAssigned}
@@ -328,6 +383,7 @@ function Lobby() {
                 const profile = player.getState('profile')
                 const ready = player.getState('ready')
                 const isMe = player.id === me.id
+                const isPlayerHost = player.id === players[0]?.id // First player is host
                 
                 return (
                   <div key={player.id} className={cn("player-card", getAnimationDelay(index))}>
@@ -339,6 +395,7 @@ function Lobby() {
                           isMe ? "text-[#F0F0F0]" : "text-[#F0F0F0]/70"
                         )}>
                           {profile?.name || 'Unknown'}
+                          {isPlayerHost && <span className="text-[#FFD700] text-xs ml-1">👑</span>}
                           {isMe && <span className="text-[#FF6B35] text-xs ml-2 font-bold">[YOU]</span>}
                         </span>
                       </div>
@@ -374,7 +431,8 @@ function Lobby() {
             {isReady ? 'CANCEL READY' : 'READY FOR HAUNT'}
           </button>
           
-          {isHost() && (
+          {/* Start Game Button - Explicit amIHost check with visual feedback */}
+          {amIHost && (
             <button
               onClick={handleStartGame}
               disabled={!allReady || !rolesAssigned}
@@ -392,6 +450,15 @@ function Lobby() {
                 : 'START GHOST HUNT'
               }
             </button>
+          )}
+          
+          {/* Debug indicator for non-hosts */}
+          {!amIHost && players.length > 0 && (
+            <div className="text-center py-2">
+              <span className="font-mono text-xs text-[#F0F0F0]/40">
+                👑 Only Host can start the game
+              </span>
+            </div>
           )}
           
           <button
