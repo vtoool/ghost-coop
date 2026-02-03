@@ -239,6 +239,46 @@ vercel --prod
 
 ---
 
+## 11. Always Deploy to Production 🚀
+
+**CRITICAL:** Always deploy changes to Vercel production for testing. Never rely on local dev server for verification.
+
+### Workflow
+
+```bash
+# 1. Make changes and commit
+git add src/ AGENTS.md README.md
+
+git commit -m "feat: your feature description"
+
+# 2. Push to GitHub
+git push origin main
+
+# 3. Deploy to production (REQUIRED)
+vercel --prod
+```
+
+### Why This Rule Exists
+
+- Local dev doesn't replicate PlayroomKit WebRTC behavior accurately
+- Production testing verifies real multiplayer connections
+- Eliminates "works on my machine" issues
+- User's laptop is too weak for local dev
+
+### URLs
+
+- **Production:** https://ghost-coop.vercel.app
+- **Alias:** https://ecto-busters.vercel.app
+
+### After Deploy
+
+1. Open production URL in browser
+2. Verify DebugOverlay shows "✓ CONNECTED"
+3. Test the feature end-to-end
+4. Share URL for multiplayer testing
+
+---
+
 ## Quick Reference Card 🎴
 
 | Task | Command |
