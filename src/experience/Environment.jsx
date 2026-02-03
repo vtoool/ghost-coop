@@ -3,6 +3,9 @@ import { useGLTF } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
+useGLTF.preload('/models/environment/gravestone-cross.glb')
+useGLTF.preload('/models/environment/pillar-large.glb')
+
 // Seeded random number generator for stable procedural generation
 function createSeededRandom(seed) {
   let s = seed

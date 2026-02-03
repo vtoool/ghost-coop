@@ -3,7 +3,20 @@ import { Physics } from '@react-three/rapier'
 import { KeyboardControls } from '@react-three/drei'
 import { Suspense, useMemo } from 'react'
 import { Joystick, myPlayer, useMultiplayerState } from 'playroomkit'
+import { ErrorBoundary } from 'react-error-boundary'
 import GameWorld from '../experience/GameWorld'
+
+function Fallback({ error, resetErrorBoundary }) {
+  console.error('Game World Error:', error)
+  return (
+    <group>
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[2, 2, 2]} />
+        <meshBasicMaterial color="orange" wireframe />
+      </mesh>
+    </group>
+  )
+}
 
 /**
  * Game - The 3D Game Container
@@ -42,9 +55,11 @@ export default function Game() {
           camera={{ position: [0, 5, 10], fov: 50 }}
         >
           <Suspense fallback={null}>
-            <Physics debug>
-              <GameWorld />
-            </Physics>
+            <ErrorBoundary FallbackComponent={Fallback}>
+              <Physics debug>
+                <GameWorld />
+              </Physics>
+            </ErrorBoundary>
           </Suspense>
         </Canvas>
       </KeyboardControls>
