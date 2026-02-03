@@ -44,18 +44,75 @@ function Lobby() {
   const myName = myProfile?.name || null
   const isReady = me.getState('ready') || false
   
-  // CRITICAL: Reactive host check - must be computed every render
-  const amIHost = isHost()
+  // CRITICAL: "First-Born" Authority - Fallback to player list order if isHost() fails
+  const amIHost = isHost() || (players[0]?.id === me?.id)
   
-  // Aggressive Role Assignment & Host Migration Safety Net
+  // Get other player's ready status
+  const otherPlayer = players.find(p => p.id !== me?.id)
+  const otherPlayerReady = otherPlayer?.getState('ready') || false
+  
+  // Compute button state - HONEST about why it's disabled
+  const getButtonState = () => {
+    if (!amIHost) return { 
+      text: "WAITING FOR HOST...", 
+      disabled: true,
+      reason: "not-host"
+    }
+    if (players.length < 2) return { 
+      text: "WAITING FOR PLAYER 2...", 
+      disabled: true,
+      reason: "waiting-p2"
+    }
+    if (!roles.hunter || !roles.operator) return { 
+      text: "ASSIGN ROLES FIRST", 
+      disabled: true,
+      reason: "no-roles"
+    }
+    if (!isReady) return { 
+      text: "CLICK READY FIRST", 
+      disabled: true,
+      reason: "not-ready"
+    }
+    if (!otherPlayerReady) return { 
+      text: "WAITING FOR P2 READY", 
+      disabled: true,
+      reason: "p2-not-ready"
+    }
+    return { 
+      text: "START GHOST HUNT", 
+      disabled: false,
+      reason: "ready"
+    }
+  }
+  
+  const buttonState = getButtonState()
+  
+  // Check if all players are ready
+  const allReady = players.length > 0 && players.every(p => p.getState('ready'))
+  
+  // Check if roles are assigned (both slots filled for 2-player game)
+  const rolesAssigned = roles.hunter && roles.operator && players.length === 2
+  
+  // Get player names for role cards
+  const getPlayerName = (playerId) => {
+    if (!playerId) return 'VACANT'
+    const player = players.find(p => p.id === playerId)
+    return player?.getState('profile')?.name || 'Unknown'
+  }
+  
+  const hunterName = getPlayerName(roles.hunter)
+  const operatorName = getPlayerName(roles.operator)
+  const myRole = roles.hunter === me.id ? 'hunter' : roles.operator === me.id ? 'operator' : null
+  
+  // The "Auto-Start" Effect - Engine Starter
   useEffect(() => {
-    // Only Host manages roles to avoid conflicts
+    // Only Host (or First-Born) manages roles to avoid conflicts
     if (!amIHost) {
-      console.log('[Lobby] Not host, skipping role management')
+      console.log('[Lobby] Not host, skipping role management. amIHost:', amIHost)
       return
     }
     
-    console.log('[Lobby] Host checking roles. Players:', players.length, 'Current roles:', roles)
+    console.log('[Lobby] Host authority active. Players:', players.length, 'amIHost:', amIHost, 'Roles:', roles)
     
     // Find other player (if exists)
     const otherPlayer = players.find(p => p.id !== me.id)
@@ -77,50 +134,23 @@ function Lobby() {
       }
     }
     
-    // CASE B: Host Migration / Solo Play Cleanup
-    if (players.length === 1) {
-      // I'm the only player and I'm host
-      // Clear the other role slot since that player left
-      const myCurrentRole = roles.hunter === me.id ? 'hunter' : 
-                           roles.operator === me.id ? 'operator' : null
-      
-      if (myCurrentRole === 'hunter' && roles.operator && roles.operator !== me.id) {
-        console.log('[Lobby] Solo mode: Clearing departed operator')
-        setRoles({ hunter: me.id, operator: null })
-      } else if (myCurrentRole === 'operator' && roles.hunter && roles.hunter !== me.id) {
-        console.log('[Lobby] Solo mode: Clearing departed hunter')
-        setRoles({ hunter: null, operator: me.id })
-      } else if (!myCurrentRole) {
-        // I have no role, assign myself as operator by default
-        console.log('[Lobby] Solo mode: Assigning self as Operator')
-        setRoles({ hunter: null, operator: me.id })
-      }
+    // CASE B: Solo Play - Assign self as Operator
+    if (players.length === 1 && (!roles.operator || roles.operator !== me.id)) {
+      console.log('[Lobby] Solo mode: Assigning self as Operator')
+      setRoles({ hunter: null, operator: me.id })
     }
     
-    // CASE C: Clear all roles if everyone left (edge case)
-    if (players.length === 0 && (roles.hunter || roles.operator)) {
-      console.log('[Lobby] Everyone left, clearing roles')
-      setRoles({ hunter: null, operator: null })
+    // CASE C: Clear departed player roles
+    if (roles.hunter && !players.find(p => p.id === roles.hunter)) {
+      console.log('[Lobby] Hunter left, clearing role')
+      setRoles(prev => ({ ...prev, hunter: null }))
+    }
+    if (roles.operator && !players.find(p => p.id === roles.operator)) {
+      console.log('[Lobby] Operator left, clearing role')
+      setRoles(prev => ({ ...prev, operator: null }))
     }
     
   }, [players, amIHost, me.id, roles.hunter, roles.operator, setRoles])
-  
-  // Check if all players are ready
-  const allReady = players.length > 0 && players.every(p => p.getState('ready'))
-  
-  // Check if roles are assigned (both slots filled for 2-player game)
-  const rolesAssigned = roles.hunter && roles.operator && players.length === 2
-  
-  // Get player names for role cards
-  const getPlayerName = (playerId) => {
-    if (!playerId) return 'VACANT'
-    const player = players.find(p => p.id === playerId)
-    return player?.getState('profile')?.name || 'Unknown'
-  }
-  
-  const hunterName = getPlayerName(roles.hunter)
-  const operatorName = getPlayerName(roles.operator)
-  const myRole = roles.hunter === me.id ? 'hunter' : roles.operator === me.id ? 'operator' : null
   
   // Handle name submission
   const handleJoin = () => {
@@ -228,15 +258,19 @@ function Lobby() {
           </button>
         </div>
         
-        {/* Role Indicator with Crown for Host */}
+        {/* Role Indicator with Visual Debug */}
         <div className="mt-8 z-10">
           <div className={cn(
-            "room-code text-xs flex items-center gap-2",
-            amIHost ? "border-[#FF6B35]" : "border-[#00F0FF]"
+            "room-code text-xs flex items-center gap-2 px-4 py-2",
+            amIHost ? "border-[#FF6B35] bg-[#FF6B35]/10" : "border-[#00F0FF] bg-[#00F0FF]/10"
           )}>
-            {amIHost && <span className="text-lg">👑</span>}
+            <span className="text-lg">{amIHost ? "👑" : "⚡"}</span>
+            <span className="font-mono font-bold text-[#F0F0F0]">
+              {amIHost ? "HOST" : "CLIENT"}
+            </span>
+            <span className="text-[#F0F0F0]/50">|</span>
             <span className="text-[#F0F0F0]/70">
-              {amIHost ? 'You are the Host' : 'Joining existing game...'}
+              {amIHost ? 'You are in charge' : 'Waiting for Host...'}
             </span>
           </div>
         </div>
@@ -250,21 +284,39 @@ function Lobby() {
       <div className="flex flex-col h-full" style={{ width: '100%', maxWidth: '480px' }}>
         <div className="noise-overlay" />
         
-        {/* Header with Host Crown */}
+        {/* Header with Host Crown & Visual Debug */}
         <div className="text-center mb-4 md:mb-6 z-10">
           <div className="flex items-center justify-center gap-3 mb-2">
-            {amIHost && (
-              <span className="text-2xl animate-pulse" title="Host">👑</span>
-            )}
+            <span className={cn(
+              "text-2xl animate-pulse",
+              amIHost ? "text-[#FFD700]" : "text-[#00F0FF]"
+            )}>
+              {amIHost ? "👑" : "⚡"}
+            </span>
             <h1 className="font-creepster text-4xl md:text-5xl tracking-wider text-glow-orange" style={{ color: '#FF6B35' }}>
               ECTO-BUSTERS
             </h1>
-            {amIHost && (
-              <span className="text-xs font-mono bg-[#FF6B35] text-[#050505] px-2 py-1 rounded font-bold">
-                HOST
-              </span>
-            )}
+            <span className={cn(
+              "text-xs font-mono px-2 py-1 rounded font-bold",
+              amIHost 
+                ? "bg-[#FF6B35] text-[#050505]" 
+                : "bg-[#00F0FF] text-[#050505]"
+            )}>
+              {amIHost ? "HOST" : "CLIENT"}
+            </span>
           </div>
+          
+          {/* Visual Debug - Authority Status */}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <span className="font-mono text-xs text-[#F0F0F0]/60">
+              {amIHost ? "👑 HOST AUTHORITY" : "⚡ CLIENT MODE"}
+            </span>
+            <span className="text-[#F0F0F0]/30">|</span>
+            <span className="font-mono text-xs text-[#FF6B35]">
+              {players.length}/2 PLAYERS
+            </span>
+          </div>
+          
           <div className="mt-3 room-code">
             <span className="text-[#F0F0F0]/60 text-xs uppercase tracking-widest">Room Code: </span>
             <span className="text-[#FF6B35] font-mono font-bold text-lg tracking-wider">{roomCode}</span>
@@ -286,6 +338,11 @@ function Lobby() {
             <p className="font-mono text-[#00F0FF] text-xs mt-2 animate-flicker tracking-wider text-center">
               SCAN TO JOIN AS FIELD AGENT
             </p>
+            {!amIHost && (
+              <p className="font-mono text-[#FFD700] text-xs mt-1 animate-pulse">
+                👑 Only Host can invite
+              </p>
+            )}
           </div>
         )}
         
@@ -348,7 +405,7 @@ function Lobby() {
               </div>
             </div>
             
-            {/* Role Swap Controls - Now with explicit amIHost check */}
+            {/* Role Swap Controls - Show to Host only */}
             {amIHost ? (
               <button
                 onClick={swapRoles}
@@ -363,9 +420,9 @@ function Lobby() {
                 ⇄ SWAP ROLES
               </button>
             ) : (
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center py-3 bg-[#1A1A1A]/50 rounded-lg border border-[#F0F0F0]/10">
                 <span className="font-mono text-xs text-[#F0F0F0]/50 animate-flicker">
-                  Waiting for Host...
+                  👑 Waiting for Host to manage roles...
                 </span>
               </div>
             )}
@@ -421,6 +478,7 @@ function Lobby() {
         
         {/* Action Buttons */}
         <div className="space-y-3 z-10">
+          {/* Ready Toggle - Available to everyone */}
           <button
             onClick={toggleReady}
             className={cn(
@@ -431,35 +489,32 @@ function Lobby() {
             {isReady ? 'CANCEL READY' : 'READY FOR HAUNT'}
           </button>
           
-          {/* Start Game Button - Explicit amIHost check with visual feedback */}
-          {amIHost && (
-            <button
-              onClick={handleStartGame}
-              disabled={!allReady || !rolesAssigned}
-              className={cn(
-                "w-full py-4 rounded-lg text-lg font-bold transition-all font-mono uppercase tracking-wider",
-                allReady && rolesAssigned
-                  ? "btn-primary animate-pulse-glow"
-                  : "bg-[#1A1A1A] border-2 border-[#FF6B35]/30 text-[#FF6B35]/50 cursor-not-allowed"
-              )}
-            >
-              {!rolesAssigned
-                ? 'ASSIGN ROLES FIRST'
-                : !allReady
-                ? `WAITING (${players.filter(p => p.getState('ready')).length}/${players.length})`
-                : 'START GHOST HUNT'
-              }
-            </button>
-          )}
+          {/* Start Game Button - Shows to everyone but only works for Host */}
+          <button
+            onClick={handleStartGame}
+            disabled={buttonState.disabled}
+            className={cn(
+              "w-full py-4 rounded-lg text-lg font-bold transition-all font-mono uppercase tracking-wider",
+              !buttonState.disabled
+                ? "btn-primary animate-pulse-glow"
+                : "bg-[#1A1A1A] border-2 border-[#FF6B35]/30 text-[#FF6B35]/50 cursor-not-allowed"
+            )}
+          >
+            {buttonState.text}
+          </button>
           
-          {/* Debug indicator for non-hosts */}
-          {!amIHost && players.length > 0 && (
-            <div className="text-center py-2">
-              <span className="font-mono text-xs text-[#F0F0F0]/40">
-                👑 Only Host can start the game
-              </span>
-            </div>
-          )}
+          {/* Status indicator showing exact state */}
+          <div className="text-center">
+            <span className="font-mono text-xs text-[#F0F0F0]/40">
+              {buttonState.reason === 'not-host' && "👑 Only Host can start"}
+              {buttonState.reason === 'waiting-p2' && "⏳ Waiting for Player 2..."}
+              {buttonState.reason === 'no-roles' && amIHost && "🎭 Host: Click SWAP ROLES to assign"}
+              {buttonState.reason === 'no-roles' && !amIHost && "🎭 Waiting for role assignment..."}
+              {buttonState.reason === 'not-ready' && "✋ Click READY FOR HAUNT first"}
+              {buttonState.reason === 'p2-not-ready' && "⏳ Waiting for other player to ready up..."}
+              {buttonState.reason === 'ready' && "🚀 Ready to launch!"}
+            </span>
+          </div>
           
           <button
             onClick={handleLeaveRoom}
