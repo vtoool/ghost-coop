@@ -43,9 +43,9 @@ export default function HunterController() {
     const player = myPlayer()
     if (!player) return
 
-    // 1. SYNC PIVOT (Shoulder Height)
+    // 1. SYNC PIVOT (Waist Height)
     const pos = rigidBodyRef.current.translation()
-    pivot.position.set(pos.x, pos.y + 0.5, pos.z)
+    pivot.position.set(pos.x, pos.y, pos.z)
 
     // 2. INPUTS (Corrected Direction)
     const { forward, backward, left, right } = getKeyboardControls()
@@ -109,7 +109,7 @@ export default function HunterController() {
     <>
       {/* BOOM ARM */}
       <group ref={setPivot}>
-        <PerspectiveCamera makeDefault position={[0, 0.2, 3.0]} />
+        <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
       </group>
 
       {pivot && <PointerLockControls camera={pivot} selector="#root" />}
@@ -123,7 +123,7 @@ export default function HunterController() {
         lockRotations
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-        <primitive object={scene} scale={0.6} position={[0, -0.55, 0]} />
+        <primitive object={scene} scale={0.6} position={[0, -0.75, 0]} />
       </RigidBody>
     </>
   )
