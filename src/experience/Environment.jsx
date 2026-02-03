@@ -110,6 +110,7 @@ function PropItem({ type, position, rotation, scale, gravestoneModel, pillarMode
     cloned.traverse((child) => {
       if (child.isMesh) {
         child.material.map = null
+        child.material.needsUpdate = true
         child.material.color = new THREE.Color('#4a4a4a')
         child.castShadow = true
         child.receiveShadow = true

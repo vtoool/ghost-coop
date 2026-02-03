@@ -31,7 +31,7 @@ export default function GameWorld() {
   return (
     <>
       {/* Lighting */}
-      <ambientLight intensity={0.3} />
+      <ambientLight intensity={0.6} />
       <directionalLight
         position={[10, 20, 10]}
         intensity={1.5}
@@ -39,9 +39,12 @@ export default function GameWorld() {
         shadow-mapSize={[2048, 2048]}
       />
       
+      {/* Center fill light to prevent pitch black areas */}
+      <pointLight position={[0, 10, 0]} intensity={2} color="#ffffff" distance={30} />
+      
       {/* Spooky accent lighting */}
-      <pointLight position={[5, 5, 5]} intensity={0.5} color="#FF6B35" />
-      <pointLight position={[-5, 3, -5]} intensity={0.3} color="#00F0FF" />
+      <pointLight position={[5, 5, 5]} intensity={0.8} color="#FF6B35" />
+      <pointLight position={[-5, 3, -5]} intensity={0.5} color="#00F0FF" />
 
       {/* Full Graveyard Environment */}
       <Environment />

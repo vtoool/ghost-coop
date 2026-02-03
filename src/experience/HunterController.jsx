@@ -28,10 +28,11 @@ export default function HunterController() {
     clone.traverse((child) => {
       if (child.isMesh) {
         child.material.map = null
+        child.material.needsUpdate = true
         child.material = new THREE.MeshStandardMaterial({
           color: '#FF6B35',
           emissive: '#FF6B35',
-          emissiveIntensity: 0.3,
+          emissiveIntensity: 0.5,
         })
       }
     })
@@ -48,14 +49,18 @@ export default function HunterController() {
   // Get joystick input from Playroom (updated every frame)
   useFrame(() => {
     const player = myPlayer()
-    if (player) {
-      const joy = player.getJoystick()
-      if (joy) {
-        joystickState.current = {
-          x: joy.x || 0,
-          y: joy.y || 0,
-          isActive: joy.isActive || false
+    if (player && typeof player.getJoystick === 'function') {
+      try {
+        const joy = player.getJoystick()
+        if (joy) {
+          joystickState.current = {
+            x: joy.x || 0,
+            y: joy.y || 0,
+            isActive: joy.isActive || false
+          }
         }
+      } catch (e) {
+        joystickState.current = { x: 0, y: 0, isActive: false }
       }
     }
   })
