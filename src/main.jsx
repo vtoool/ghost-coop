@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { insertCoin, myPlayer, isHost } from 'playroomkit'
 import './index.css'
 import App from './App.jsx'
+import { getStoredProfile } from './utils/playerStorage.js'
 
 /**
  * NETWORK GATE PATTERN - Phase 1 Stability Fix
@@ -83,7 +84,16 @@ async function bootstrap() {
       timestamp: new Date().toISOString()
     })
     
-    // Step 4: NOW it's safe to render React
+    // Step 4: Restore profile from localStorage if exists (Fixes "Amnesia" Bug)
+    const storedProfile = getStoredProfile()
+    if (storedProfile?.name) {
+      console.log('[Gatekeeper] Restoring profile from localStorage:', storedProfile.name)
+      player.setState('profile', storedProfile, true) // true = reliable
+      player.setState('ready', false, true)
+      console.log('[Gatekeeper] Profile restored successfully')
+    }
+    
+    // Step 5: NOW it's safe to render React
     console.log('[Gatekeeper] Network gate open - rendering React...')
     createRoot(document.getElementById('root')).render(
       <StrictMode>

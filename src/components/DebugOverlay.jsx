@@ -37,6 +37,9 @@ function DebugOverlay() {
     }
   }
   
+  // Get profile name for display
+  const myProfileName = me?.getState('profile')?.name || 'Not Set'
+  
   if (!isVisible) return null
   
   return (
@@ -88,6 +91,13 @@ function DebugOverlay() {
           <span style={{ color: '#888' }}>Player ID:</span>
           <span style={{ color: '#00F0FF', fontWeight: 'bold' }}>
             {playerId.slice(0, 8)}...
+          </span>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: '#888' }}>Name:</span>
+          <span style={{ color: '#FF6B35', fontWeight: 'bold' }}>
+            {myProfileName}
           </span>
         </div>
         
