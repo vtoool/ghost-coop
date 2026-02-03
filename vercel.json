@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "ecto-busters",
+  "name": "ghost-coop",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
