@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePlayersList, isHost, myPlayer, useMultiplayerState } from 'playroomkit'
 import { QRCodeSVG } from 'qrcode.react'
 import { clsx } from 'clsx'
@@ -11,24 +11,26 @@ function cn(...inputs) {
 }
 
 /**
- * Lobby - Dumb UI Component
+ * Lobby - Phase 2 Enhanced with Role Management
  * 
  * RULE: Assumes network is ALREADY ready (guaranteed by main.jsx Gatekeeper).
  * 
- * Responsibilities:
- * - Display player list
- * - Handle name input and ready toggles
- * - Show QR code for joining
- * - Start game (host only)
- * 
- * NO network initialization logic.
- * NO defensive checks for player object existence.
+ * NEW: Asymmetric Gameplay Roles
+ * - Hunter: Field Agent (3rd Person, catches ghosts)
+ * - Operator: Tactical Oversight (Top-down map view, provides intel)
  */
 function Lobby() {
   // Use reactive player list - this triggers re-renders when players join/leave/update
   const players = usePlayersList(true)
   const me = myPlayer()
   const [, setGameStart] = useMultiplayerState('gameStart')
+  const [gamePhase, setGamePhase] = useMultiplayerState('gamePhase', 'lobby')
+  
+  // Role Management State (NEW FOR PHASE 2)
+  const [roles, setRoles] = useMultiplayerState('roles', {
+    hunter: null,
+    operator: null
+  })
   
   // Get stored profile from localStorage for pre-filling input
   const storedProfile = getStoredProfile()
@@ -42,8 +44,39 @@ function Lobby() {
   const myName = myProfile?.name || null
   const isReady = me.getState('ready') || false
   
+  // Auto-assign roles when second player joins (Host only)
+  useEffect(() => {
+    if (isHost() && players.length === 2 && !roles.hunter && !roles.operator) {
+      const hostId = me.id
+      const joinerId = players.find(p => p.id !== hostId)?.id
+      
+      if (joinerId) {
+        console.log('[Lobby] Auto-assigning roles: Host=Operator, Joiner=Hunter')
+        const newRoles = {
+          operator: hostId,
+          hunter: joinerId
+        }
+        setRoles(newRoles)
+      }
+    }
+  }, [players.length, roles.hunter, roles.operator, isHost, me.id, setRoles])
+  
   // Check if all players are ready
   const allReady = players.length > 0 && players.every(p => p.getState('ready'))
+  
+  // Check if roles are assigned (both slots filled)
+  const rolesAssigned = roles.hunter && roles.operator
+  
+  // Get player names for role cards
+  const getPlayerName = (playerId) => {
+    if (!playerId) return 'VACANT'
+    const player = players.find(p => p.id === playerId)
+    return player?.getState('profile')?.name || 'Unknown'
+  }
+  
+  const hunterName = getPlayerName(roles.hunter)
+  const operatorName = getPlayerName(roles.operator)
+  const myRole = roles.hunter === me.id ? 'hunter' : roles.operator === me.id ? 'operator' : null
   
   // Handle name submission
   const handleJoin = () => {
@@ -78,9 +111,22 @@ function Lobby() {
     me.setState('ready', newReady, true)
   }
   
+  // Swap roles function (Host only)
+  const swapRoles = () => {
+    if (!isHost()) return
+    
+    console.log('[Lobby] Swapping roles')
+    const newRoles = {
+      hunter: roles.operator,
+      operator: roles.hunter
+    }
+    setRoles(newRoles)
+  }
+  
   // Host starts the game
   const handleStartGame = () => {
-    if (isHost() && allReady) {
+    if (isHost() && allReady && rolesAssigned) {
+      setGamePhase('playing')
       setGameStart(true)
     }
   }
@@ -156,7 +202,7 @@ function Lobby() {
   // LOBBY SCREEN - Show when player has entered name
   return (
     <div className="lobby-container w-full h-full bg-spooky flex flex-col items-center p-4 md:p-6 relative overflow-hidden">
-      <div className="flex flex-col h-full" style={{ width: '100%', maxWidth: '380px' }}>
+      <div className="flex flex-col h-full" style={{ width: '100%', maxWidth: '480px' }}>
         <div className="noise-overlay" />
         
         {/* Header */}
@@ -183,70 +229,138 @@ function Lobby() {
               />
             </div>
             <p className="font-mono text-[#00F0FF] text-xs mt-2 animate-flicker tracking-wider text-center">
-              SCAN TO JOIN AS CONTROLLER
+              SCAN TO JOIN AS FIELD AGENT
             </p>
           </div>
         )}
         
-        {/* Share Room */}
-        <div className="flex flex-col items-center mb-4 z-10">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href)
-              setLinkCopied(true)
-              setTimeout(() => setLinkCopied(false), 2000)
-            }}
-            className={cn(
-              "text-xs py-2 px-4 transition-all",
-              linkCopied ? "btn-ready" : "btn-ghost"
-            )}
-          >
-            {linkCopied ? 'LINK COPIED!' : 'COPY ROOM LINK'}
-          </button>
-        </div>
-        
-        {/* Player List */}
-        <div className="flex-1 bg-[#1A1A1A]/80 rounded-xl border border-[#FF6B35]/30 p-4 mb-4 overflow-y-auto z-10 backdrop-blur-sm w-full">
-          <h2 className="font-mono text-[#F0F0F0]/60 text-xs font-bold mb-4 uppercase tracking-widest">
-            Ghost Hunters ({players.length})
-          </h2>
-          <div className="space-y-3">
-            {players.map((player, index) => {
-              const profile = player.getState('profile')
-              const ready = player.getState('ready')
-              const isMe = player.id === me.id
-              
-              return (
-                <div key={player.id} className={cn("player-card", getAnimationDelay(index))}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn("status-dot", ready ? "ready" : "waiting")} />
-                      <span className={cn(
-                        "font-mono font-medium",
-                        isMe ? "text-[#F0F0F0]" : "text-[#F0F0F0]/70"
-                      )}>
-                        {profile?.name || 'Unknown'}
-                        {isMe && <span className="text-[#FF6B35] text-xs ml-2 font-bold">[YOU]</span>}
-                      </span>
-                    </div>
+        {/* Mission Briefing - Role Cards (PHASE 2) */}
+        {players.length >= 2 && (
+          <div className="mb-6 z-10 w-full">
+            <h2 className="font-creepster text-2xl mb-4 text-center text-[#F0F0F0] tracking-wider">
+              MISSION BRIEFING
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Hunter Card - Field Agent */}
+              <div className={cn(
+                "rounded-xl border-2 p-4 transition-all",
+                myRole === 'hunter' 
+                  ? "border-[#FF6B35] bg-[#FF6B35]/10 shadow-[0_0_20px_rgba(255,107,53,0.3)]"
+                  : "border-[#FF6B35]/50 bg-[#1A1A1A]/80"
+              )}>
+                <div className="text-center">
+                  <div className="text-3xl mb-2">👻</div>
+                  <h3 className="font-creepster text-lg text-[#FF6B35] mb-1">FIELD AGENT</h3>
+                  <p className="font-mono text-xs text-[#F0F0F0]/60 mb-3">HUNTER</p>
+                  <p className="font-mono text-xs text-[#F0F0F0]/80 leading-relaxed">
+                    3rd Person View. Trap Ghosts.
+                  </p>
+                  <div className="mt-3 pt-3 border-t border-[#FF6B35]/30">
                     <span className={cn(
-                      "font-mono text-xs font-bold tracking-wider",
-                      ready ? "text-[#00F0FF] text-glow-cyan" : "text-[#FFD700] animate-flicker"
+                      "font-mono text-xs font-bold",
+                      roles.hunter ? "text-[#00F0FF]" : "text-[#F0F0F0]/40"
                     )}>
-                      {ready ? 'READY' : 'WAITING'}
+                      {hunterName}
                     </span>
                   </div>
                 </div>
-              )
-            })}
+              </div>
+              
+              {/* Operator Card - Tactical Oversight */}
+              <div className={cn(
+                "rounded-xl border-2 p-4 transition-all",
+                myRole === 'operator'
+                  ? "border-[#00F0FF] bg-[#00F0FF]/10 shadow-[0_0_20px_rgba(0,240,255,0.3)]"
+                  : "border-[#00F0FF]/50 bg-[#1A1A1A]/80"
+              )}>
+                <div className="text-center">
+                  <div className="text-3xl mb-2">👁️</div>
+                  <h3 className="font-creepster text-lg text-[#00F0FF] mb-1">OVERSIGHT</h3>
+                  <p className="font-mono text-xs text-[#F0F0F0]/60 mb-3">OPERATOR</p>
+                  <p className="font-mono text-xs text-[#F0F0F0]/80 leading-relaxed">
+                    Tactical Map. Support & Intel.
+                  </p>
+                  <div className="mt-3 pt-3 border-t border-[#00F0FF]/30">
+                    <span className={cn(
+                      "font-mono text-xs font-bold",
+                      roles.operator ? "text-[#00F0FF]" : "text-[#F0F0F0]/40"
+                    )}>
+                      {operatorName}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Role Swap Controls */}
+            {isHost() ? (
+              <button
+                onClick={swapRoles}
+                disabled={!rolesAssigned}
+                className={cn(
+                  "mt-4 w-full py-3 rounded-lg font-bold font-mono text-sm tracking-wider transition-all",
+                  rolesAssigned
+                    ? "btn-ghost border-dashed animate-pulse-glow"
+                    : "bg-[#1A1A1A] border border-[#F0F0F0]/20 text-[#F0F0F0]/30 cursor-not-allowed"
+                )}
+              >
+                ⇄ SWAP ROLES
+              </button>
+            ) : (
+              <div className="mt-4 text-center">
+                <span className="font-mono text-xs text-[#F0F0F0]/50 animate-flicker">
+                  Waiting for Host...
+                </span>
+              </div>
+            )}
           </div>
-          
-          {players.length === 0 && (
-            <p className="font-mono text-[#F0F0F0]/30 text-center py-8 text-sm">
-              No paranormal activity detected...
-            </p>
-          )}
-        </div>
+        )}
+        
+        {/* Player List - Only show if we have players but less than 2 */}
+        {players.length < 2 && (
+          <div className="flex-1 bg-[#1A1A1A]/80 rounded-xl border border-[#FF6B35]/30 p-4 mb-4 overflow-y-auto z-10 backdrop-blur-sm w-full">
+            <h2 className="font-mono text-[#F0F0F0]/60 text-xs font-bold mb-4 uppercase tracking-widest">
+              Ghost Hunters ({players.length})
+            </h2>
+            <div className="space-y-3">
+              {players.map((player, index) => {
+                const profile = player.getState('profile')
+                const ready = player.getState('ready')
+                const isMe = player.id === me.id
+                
+                return (
+                  <div key={player.id} className={cn("player-card", getAnimationDelay(index))}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("status-dot", ready ? "ready" : "waiting")} />
+                        <span className={cn(
+                          "font-mono font-medium",
+                          isMe ? "text-[#F0F0F0]" : "text-[#F0F0F0]/70"
+                        )}>
+                          {profile?.name || 'Unknown'}
+                          {isMe && <span className="text-[#FF6B35] text-xs ml-2 font-bold">[YOU]</span>}
+                        </span>
+                      </div>
+                      <span className={cn(
+                        "font-mono text-xs font-bold tracking-wider",
+                        ready ? "text-[#00F0FF] text-glow-cyan" : "text-[#FFD700] animate-flicker"
+                      )}>
+                        {ready ? 'READY' : 'WAITING'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            
+            {players.length === 0 && (
+              <p className="font-mono text-[#F0F0F0]/30 text-center py-8 text-sm">
+                No paranormal activity detected...
+              </p>
+            )}
+          </div>
+        )}
         
         {/* Action Buttons */}
         <div className="space-y-3 z-10">
@@ -263,17 +377,19 @@ function Lobby() {
           {isHost() && (
             <button
               onClick={handleStartGame}
-              disabled={!allReady}
+              disabled={!allReady || !rolesAssigned}
               className={cn(
                 "w-full py-4 rounded-lg text-lg font-bold transition-all font-mono uppercase tracking-wider",
-                allReady
+                allReady && rolesAssigned
                   ? "btn-primary animate-pulse-glow"
                   : "bg-[#1A1A1A] border-2 border-[#FF6B35]/30 text-[#FF6B35]/50 cursor-not-allowed"
               )}
             >
-              {allReady 
-                ? 'START GHOST HUNT' 
-                : `WAITING (${players.filter(p => p.getState('ready')).length}/${players.length})`
+              {!rolesAssigned
+                ? 'ASSIGN ROLES FIRST'
+                : !allReady
+                ? `WAITING (${players.filter(p => p.getState('ready')).length}/${players.length})`
+                : 'START GHOST HUNT'
               }
             </button>
           )}

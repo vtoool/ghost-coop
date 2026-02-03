@@ -7,13 +7,21 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:two-player": "npx playwright test tests/two-player.spec.js --headed",
+    "test:report": "npx playwright show-report"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@react-three/rapier": "^2.2.0",
     "@types/three": "^0.182.0",
     "clsx": "^2.1.1",
+    "leva": "^0.10.1",
     "playroomkit": "^0.0.95",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
