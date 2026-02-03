@@ -25,21 +25,32 @@ Lobby & Connection Architecture — Foundation deployed and stable.
 
 ## 🏗️ Architecture
 
-### Manager Pattern
+### Network Gate Pattern (Phase 1 Stability Fix)
+
+**Problem Solved:** Eliminates React StrictMode race conditions with PlayroomKit.
+
 ```
-main.jsx (Bootstrapper) 
-  ↓
-GameManager (Zustand Store)
-  ↓
-├── Interface (UI Layer) — React components
-└── Experience (3D Layer) — R3F scene
+┌─────────────────────────────────────────┐
+│  index.html (Loading Spinner CSS)       │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│  main.jsx (The Gatekeeper)              │
+│  1. await insertCoin()                  │
+│  2. Poll for myPlayer().id (confirms)   │
+│  3. Wait for isHost() ready             │
+│  4. ONLY THEN render React              │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│  App.jsx + Lobby.jsx (Dumb UI)          │
+│  • Assume network is ready              │
+│  • No defensive null checks             │
+│  • DebugOverlay shows live state        │
+└─────────────────────────────────────────┘
 ```
 
-### Networking Hierarchy
-**Playroom Kit = Source of Truth**
-- `useMultiplayerState()` — Global game state (e.g., `gameStart`)
-- `myPlayer().setState()` — Player-specific state (e.g., `profile`, `ready`)
-- `usePlayersList()` — All connected players
+**Key Insight:** `insertCoin()` resolves before `myPlayer()` is fully populated. The Gatekeeper polls until `myPlayer().id` exists, guaranteeing React only renders when the network is 100% ready.
 
 ### State Discipline
 | State Type | Store | Access Pattern |
@@ -49,6 +60,8 @@ GameManager (Zustand Store)
 | Player Data | Playroom | `myPlayer().getState()` |
 
 **Rule:** Never duplicate multiplayer state into local React state.
+
+**New Rule:** UI components assume network is ready (enforced by Gatekeeper).
 
 ---
 
@@ -121,10 +134,12 @@ vercel --prod
 
 | File | Purpose |
 |------|---------|
-| `src/main.jsx` | Bootstrapper — initializes Playroom before React |
+| `index.html` | Loading spinner CSS (shows while Playroom initializes) |
+| `src/main.jsx` | **Gatekeeper** — polls until network 100% ready before rendering React |
+| `src/App.jsx` | View manager (lobby vs game), mounts DebugOverlay |
+| `src/components/Lobby.jsx` | Universal lobby UI (dumb component, assumes network ready) |
+| `src/components/DebugOverlay.jsx` | Real-time connection monitor (player ID, host status, phase) |
 | `src/stores/useGameStore.js` | Zustand store for UI state |
-| `src/App.jsx` | View manager (lobby vs game) |
-| `src/components/Lobby.jsx` | Universal lobby UI |
 | `tests/visual.spec.js` | Playwright visual tests |
 | `rules.md` | Coding standards and best practices |
 | `STYLE_GUIDE.md` | Visual design system and UI specifications |
@@ -133,13 +148,59 @@ vercel --prod
 
 ## 🔒 Non-Negotiables
 
-1. **No Race Conditions** — `insertCoin()` only in `main.jsx` bootstrapper
-2. **Universal Design** — Never "Desktop" or "Mobile", always "Host" and "Join"
-3. **Mobile First** — `touch-action: none` + `user-select: none` mandatory
-4. **State Discipline** — No duplicating Playroom state into React state
-5. **Visual Testing** — Playwright tests required for all UI changes
+1. **Network Gate Pattern** — `insertCoin()` in `main.jsx` ONLY, poll for `myPlayer().id` before `createRoot()`
+2. **Dumb UI Components** — App/Lobby assume network ready, no defensive null checks
+3. **Universal Design** — Never "Desktop" or "Mobile", always "Host" and "Join"
+4. **Mobile First** — `touch-action: none` + `user-select: none` mandatory
+5. **State Discipline** — No duplicating Playroom state into React state
+6. **Visual Testing** — Playwright tests required for all UI changes
+7. **Continuous Self-Improvement** — ALWAYS upgrade capabilities and skills proactively
 
 ---
 
-*Last Updated: 2026-01-31*  
-*Status: Phase 1 Complete, Ready for Phase 2*
+## 🚀 Continuous Self-Improvement Protocol
+
+**Rule:** When working on any task, always look for opportunities to upgrade my own features, skills, and efficiency. This is not optional—it's a core part of the workflow.
+
+### How to Upgrade:
+
+1. **Identify Capability Gaps**
+   - What tools/workflows would make this task faster?
+   - What patterns am I repeating that could be automated?
+   - What domain knowledge would help me work smarter?
+
+2. **Create Skills** (`.opencode/skills/<name>/SKILL.md`)
+   - Document reusable patterns and best practices
+   - Define clear frontmatter: `name`, `description`, `metadata`
+   - Keep skills focused (single responsibility)
+   - Use lowercase with hyphens for names (e.g., `visual-testing`, `multiplayer-sync`)
+
+3. **Request MCPs & Tools**
+   - If a capability is missing, document the need
+   - Propose specific MCP integrations (browser automation, visual testing, etc.)
+   - Research available plugins and integrations
+
+4. **Document Learnings**
+   - Add to AGENTS.md when patterns emerge
+   - Update rules.md with new conventions
+   - Create new skill files for complex workflows
+
+5. **Automate Repetitive Tasks**
+   - Use subagents for parallel verification
+   - Create helper scripts for common operations
+   - Build test fixtures and data generators
+
+### Current Skill Inventory:
+
+- *None yet* — Create skills as patterns emerge during development
+
+### Upgrade Opportunities Log:
+
+- [ ] **Visual Testing Skill** — Pattern for screenshot → image understanding → verification loops
+- [ ] **Multiplayer Testing Skill** — Multi-context browser automation for real-time games
+- [ ] **Style Guide Compliance Skill** — Automated STYLE_GUIDE.md verification
+
+---
+
+*Last Updated: 2026-02-03*  
+*Status: Phase 1 STABLE (Network Gate Pattern Implemented), Ready for Phase 2*
