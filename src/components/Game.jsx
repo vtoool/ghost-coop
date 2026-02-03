@@ -1,12 +1,12 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { KeyboardControls } from '@react-three/drei'
-import { Suspense, useMemo, useState, useEffect } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { Joystick, myPlayer, useMultiplayerState } from 'playroomkit'
 import { ErrorBoundary } from 'react-error-boundary'
 import GameWorld from '../experience/GameWorld'
 
-function Fallback({ error, resetErrorBoundary }) {
+function Fallback({ error }) {
   console.error('Game World Error:', error)
   return (
     <group>
@@ -18,9 +18,6 @@ function Fallback({ error, resetErrorBoundary }) {
   )
 }
 
-/**
- * ClickToPlay - Overlay for pointer lock on desktop Hunter
- */
 function ClickToPlay({ isHunter, isTouchDevice }) {
   const [clicked, setClicked] = useState(false)
   
@@ -28,10 +25,10 @@ function ClickToPlay({ isHunter, isTouchDevice }) {
   
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center z-50 cursor-pointer bg-black/50"
+      className="fixed inset-0 flex items-center justify-center z-50 cursor-pointer bg-black/70 pointer-events-auto"
       onClick={() => setClicked(true)}
     >
-      <div className="text-center">
+      <div className="text-center pointer-events-none">
         <h2 className="text-4xl font-bold text-orange-500 mb-4">CLICK TO CAPTURE MOUSE</h2>
         <p className="text-white text-lg">Click anywhere to start controlling your Hunter</p>
       </div>
@@ -39,18 +36,7 @@ function ClickToPlay({ isHunter, isTouchDevice }) {
   )
 }
 
-/**
- * Game - The 3D Game Container
- * 
- * Sets up the R3F canvas with physics and renders the game world.
- * This is the main entry point for the 3D experience.
- * 
- * Features:
- * - KeyboardControls wrapper for WASD input
- * - Conditional Joystick rendering for mobile Hunter
- */
 export default function Game() {
-  // Define keyboard controls map
   const keyboardMap = useMemo(() => [
     { name: 'forward', keys: ['ArrowUp', 'w', 'W'] },
     { name: 'backward', keys: ['ArrowDown', 's', 'S'] },
@@ -58,17 +44,13 @@ export default function Game() {
     { name: 'right', keys: ['ArrowRight', 'd', 'D'] }
   ], [])
   
-  // Check if this player is the Hunter
   const [roles] = useMultiplayerState('roles')
-  const player = myPlayer()
-  const isHunter = roles?.hunter === player?.id
-  
-  // Check for touch device (mobile)
+  const me = myPlayer()
+  const isHunter = roles?.hunter === me?.id
   const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
   
   return (
     <div className="w-full h-full absolute inset-0">
-      {/* Keyboard Controls Wrapper */}
       <KeyboardControls map={keyboardMap}>
         <Canvas
           shadows
@@ -85,7 +67,6 @@ export default function Game() {
         </Canvas>
       </KeyboardControls>
       
-      {/* Conditional Joystick for Hunter on Mobile */}
       {isHunter && isTouchDevice && (
         <Joystick 
           style={{
@@ -97,7 +78,6 @@ export default function Game() {
         />
       )}
       
-      {/* Click to capture mouse overlay for desktop Hunter */}
       <ClickToPlay isHunter={isHunter} isTouchDevice={isTouchDevice} />
     </div>
   )
