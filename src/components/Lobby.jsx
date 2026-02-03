@@ -11,13 +11,15 @@ function cn(...inputs) {
 }
 
 /**
- * Lobby - Phase 2 Enhanced with Role Management
+ * Lobby - Phase 2 with Immutable Host State (Leader Election)
  * 
  * RULE: Assumes network is ALREADY ready (guaranteed by main.jsx Gatekeeper).
  * 
- * NEW: Asymmetric Gameplay Roles
- * - Hunter: Field Agent (3rd Person, catches ghosts)
- * - Operator: Tactical Oversight (Top-down map view, provides intel)
+ * HOST AUTHORITY PATTERN:
+ * - Uses synchronized 'hostId' state as "Stone Tablet" source of truth
+ * - First player claims host: setHostId(me.id, true)
+ * - Host migration: If host leaves, remaining player detects and claims
+ * - NO players[0] checks - eliminates race conditions
  */
 function Lobby() {
   // Use reactive player list - this triggers re-renders when players join/leave/update
@@ -25,6 +27,9 @@ function Lobby() {
   const me = myPlayer()
   const [, setGameStart] = useMultiplayerState('gameStart')
   const [gamePhase, setGamePhase] = useMultiplayerState('gamePhase', 'lobby')
+  
+  // IMMUTABLE HOST STATE - The "Stone Tablet" (Leader Election)
+  const [hostId, setHostId] = useMultiplayerState('hostId', null)
   
   // Role Management State (NEW FOR PHASE 2)
   const [roles, setRoles] = useMultiplayerState('roles', {
@@ -44,8 +49,9 @@ function Lobby() {
   const myName = myProfile?.name || null
   const isReady = me.getState('ready') || false
   
-  // CRITICAL: "First-Born" Authority - Fallback to player list order if isHost() fails
-  const amIHost = isHost() || (players[0]?.id === me?.id)
+  // CRITICAL: Immutable Host Authority - No players[0] fallback
+  // Host is whoever's ID is written in the "Stone Tablet" (hostId)
+  const amIHost = hostId === me?.id
   
   // Get other player's ready status
   const otherPlayer = players.find(p => p.id !== me?.id)
@@ -104,15 +110,38 @@ function Lobby() {
   const operatorName = getPlayerName(roles.operator)
   const myRole = roles.hunter === me.id ? 'hunter' : roles.operator === me.id ? 'operator' : null
   
-  // The "Auto-Start" Effect - Engine Starter
+  // LEADER ELECTION EFFECT - The "Stone Tablet" Authority
   useEffect(() => {
-    // Only Host (or First-Born) manages roles to avoid conflicts
+    // CASE 1: Vacancy - No host assigned, claim it if I'm here
+    if (!hostId && me?.id) {
+      console.log('[Lobby] Leader Election: Claiming host vacancy. My ID:', me.id)
+      setHostId(me.id, true) // reliable=true
+      return
+    }
+    
+    // CASE 2: Abdication (Migration) - Host left, remaining player claims
+    if (hostId && !players.find(p => p.id === hostId)) {
+      // Host is gone! Check if I'm the remaining player
+      if (players.length > 0 && players[0]?.id === me?.id) {
+        console.log('[Lobby] Leader Election: Host departed. Migrating to me:', me.id)
+        setHostId(me.id, true) // reliable=true
+      }
+      return
+    }
+    
+    // Log current state for debugging
+    console.log('[Lobby] Leader Election: Host ID =', hostId, 'My ID =', me?.id, 'amIHost =', hostId === me?.id)
+  }, [hostId, players, me?.id, setHostId])
+  
+  // Role Assignment Effect - Only runs if I'm the immutable host
+  useEffect(() => {
+    // Only Host manages roles to avoid conflicts
     if (!amIHost) {
       console.log('[Lobby] Not host, skipping role management. amIHost:', amIHost)
       return
     }
     
-    console.log('[Lobby] Host authority active. Players:', players.length, 'amIHost:', amIHost, 'Roles:', roles)
+    console.log('[Lobby] Host authority active. Players:', players.length, 'Roles:', roles)
     
     // Find other player (if exists)
     const otherPlayer = players.find(p => p.id !== me.id)
@@ -273,6 +302,13 @@ function Lobby() {
               {amIHost ? 'You are in charge' : 'Waiting for Host...'}
             </span>
           </div>
+          {hostId && (
+            <div className="mt-2 text-center">
+              <span className="font-mono text-xs text-[#F0F0F0]/40">
+                Host ID: {hostId.slice(0, 8)}...
+              </span>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -309,13 +345,22 @@ function Lobby() {
           {/* Visual Debug - Authority Status */}
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="font-mono text-xs text-[#F0F0F0]/60">
-              {amIHost ? "👑 HOST AUTHORITY" : "⚡ CLIENT MODE"}
+              {amIHost ? "👑 STONE TABLET AUTHORITY" : "⚡ CLIENT MODE"}
             </span>
             <span className="text-[#F0F0F0]/30">|</span>
             <span className="font-mono text-xs text-[#FF6B35]">
               {players.length}/2 PLAYERS
             </span>
           </div>
+          
+          {/* Host ID Debug (subtle) */}
+          {hostId && (
+            <div className="mt-1">
+              <span className="font-mono text-xs text-[#F0F0F0]/30">
+                Host: {hostId === me?.id ? "YOU" : hostId.slice(0, 8) + "..."}
+              </span>
+            </div>
+          )}
           
           <div className="mt-3 room-code">
             <span className="text-[#F0F0F0]/60 text-xs uppercase tracking-widest">Room Code: </span>
@@ -440,7 +485,7 @@ function Lobby() {
                 const profile = player.getState('profile')
                 const ready = player.getState('ready')
                 const isMe = player.id === me.id
-                const isPlayerHost = player.id === players[0]?.id // First player is host
+                const isPlayerHost = player.id === hostId // Use immutable hostId
                 
                 return (
                   <div key={player.id} className={cn("player-card", getAnimationDelay(index))}>
