@@ -12,8 +12,12 @@ import { myPlayer, isHost, usePlayersList, useMultiplayerState } from 'playroomk
  * - isHost() status
  * - usePlayersList().length
  * - Current Game Phase
+ * - Player Role (hunter/operator)
+ * 
+ * @param {Object} props
+ * @param {string} props.myRole - The player's role: 'hunter', 'operator', or 'spectator'
  */
-function DebugOverlay() {
+function DebugOverlay({ myRole = 'spectator' }) {
   const [isVisible, setIsVisible] = useState(true)
   
   // Get reactive data from Playroom hooks
@@ -23,7 +27,6 @@ function DebugOverlay() {
   
   // Derived values - computed fresh on each render
   const playerId = me?.id || 'N/A'
-  const hostStatus = isHost()
   const playerCount = players.length
   
   // Determine game phase
@@ -104,10 +107,10 @@ function DebugOverlay() {
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ color: '#888' }}>Role:</span>
           <span style={{ 
-            color: hostStatus ? '#FF6B35' : '#00F0FF',
+            color: myRole === 'hunter' ? '#FF4444' : myRole === 'operator' ? '#00F0FF' : '#888',
             fontWeight: 'bold'
           }}>
-            {hostStatus ? '👑 HOST' : '🎮 GUEST'}
+            {myRole === 'hunter' ? '🎯 HUNTER' : myRole === 'operator' ? '📡 OPERATOR' : '👻 SPECTATOR'}
           </span>
         </div>
         

@@ -94,8 +94,8 @@ test.describe('Ecto-Busters Lobby Visual Tests', () => {
     const roomCode = page.locator('.room-code')
     await expect(roomCode).toBeVisible()
     
-    // Verify ready button exists
-    const readyButton = page.locator('button:has-text("READY")')
+    // Verify ready button exists (button text is "READY FOR HAUNT")
+    const readyButton = page.locator('button:has-text("READY FOR HAUNT")')
     await expect(readyButton).toBeVisible()
   })
 

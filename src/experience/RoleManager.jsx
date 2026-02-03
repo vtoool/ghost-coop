@@ -15,8 +15,8 @@ export default function RoleManager({ roles, playerId }) {
   if (isHunter) {
     return (
       <>
-        {/* Hunter Camera - 3rd person view */}
-        <PerspectiveCamera makeDefault position={[0, 5, 10]} />
+        {/* Hunter Camera - 3rd person view looking forward */}
+        <PerspectiveCamera makeDefault position={[0, 5, 10]} rotation={[-0.2, 0, 0]} />
 
         {/* Hunter Avatar - Red box at ground level */}
         <RigidBody type="dynamic" position={[0, 1, 0]}>
@@ -32,13 +32,14 @@ export default function RoleManager({ roles, playerId }) {
   if (isOperator) {
     return (
       <>
-        {/* Operator Camera - Top-down map view */}
+        {/* Operator Camera - Top-down map view looking straight down */}
         <OrthographicCamera
           makeDefault
-          position={[0, 20, 0]}
-          zoom={40}
+          position={[0, 50, 0]}
+          zoom={20}
           near={0.1}
           far={100}
+          rotation={[-Math.PI / 2, 0, 0]}
         />
         {/* Operator has no avatar - they are a ghost in the machine */}
       </>

@@ -1,4 +1,4 @@
-import { useMultiplayerState } from 'playroomkit'
+import { useMultiplayerState, myPlayer } from 'playroomkit'
 import Lobby from './components/Lobby'
 import Game from './components/Game'
 import DebugOverlay from './components/DebugOverlay'
@@ -22,11 +22,22 @@ function App() {
   // Subscribe to Playroom's global game state
   // This is safe because main.jsx guaranteed the network is ready
   const [gameStart] = useMultiplayerState('gameStart', false)
+  
+  // Get global roles state and calculate current player's role
+  const [roles] = useMultiplayerState('roles')
+  const me = myPlayer()
+  
+  // Calculate role: verify roles is defined before checking properties
+  const myRole = roles && roles.hunter === me?.id 
+    ? 'hunter' 
+    : roles && roles.operator === me?.id 
+      ? 'operator' 
+      : 'spectator'
 
   return (
     <>
       {/* Debug Overlay - Real-time connection monitoring */}
-      <DebugOverlay />
+      <DebugOverlay myRole={myRole} />
       
       {/* Main View Router */}
       {gameStart ? <Game /> : <Lobby />}
