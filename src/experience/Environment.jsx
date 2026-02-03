@@ -82,17 +82,11 @@ export default function Environment() {
   
   return (
     <>
-      {/* Dark Floor Plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
-      </mesh>
-      
-      {/* Floor collider */}
-      <RigidBody type="fixed" friction={0.8} restitution={0.1}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+      {/* Dark Floor Plane with Physics */}
+      <RigidBody type="fixed" colliders="cuboid" friction={2}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
           <planeGeometry args={[100, 100]} />
-          <meshStandardMaterial color="#1a1a1a" visible={false} />
+          <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
         </mesh>
       </RigidBody>
       
