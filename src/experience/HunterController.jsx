@@ -8,7 +8,7 @@ import * as THREE from 'three'
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
   const [pivot, setPivot] = useState(null)
-  const [currentAction, setCurrentAction] = useState("Idle")
+  const [currentAction, setCurrentAction] = useState("idle")
 
   const { scene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, scene)
@@ -28,7 +28,7 @@ export default function HunterController() {
     console.log("Available animations:", Object.keys(actions))
     console.log("Switching to:", currentAction)
     
-    const action = actions[currentAction] || actions["Idle"]
+     const action = actions[currentAction] || actions["idle"]
     if (action) {
       action.reset().fadeIn(0.2).play()
       return () => action.fadeOut(0.2)
@@ -85,7 +85,7 @@ export default function HunterController() {
 
     // 3. ANIMATION STATE
     const isMoving = moveDir.lengthSq() > 0.001
-    const targetAction = isMoving ? "Run" : "Idle"
+    const targetAction = isMoving ? "sprint" : "idle"
     if (targetAction !== currentAction) {
       setCurrentAction(targetAction)
     }
