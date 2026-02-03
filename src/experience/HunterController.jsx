@@ -1,30 +1,28 @@
-import { useRef, useMemo, useEffect } from 'react'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
 
-/**
- * HunterController - The Hunter Avatar with Universal Controls
- * 
- * Features:
- * - Loads GLB character model with neon pumpkin skin
- * - Dual-input: Keyboard (WASD) + Joystick for mobile
- * - PointerLockControls for mouse look on desktop
- * - Physics-based movement with Rapier
- * - Syncs position to Playroom for Operator view
- */
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
   const characterRef = useRef(null)
   const controlsRef = useRef(null)
   const { camera } = useThree()
+  const [isLocked, setIsLocked] = useState(false)
+  
+  const keyboardMap = useMemo(() => [
+    { name: 'forward', keys: ['ArrowUp', 'w', 'W'] },
+    { name: 'backward', keys: ['ArrowDown', 's', 'S'] },
+    { name: 'left', keys: ['ArrowLeft', 'a', 'A'] },
+    { name: 'right', keys: ['ArrowRight', 'd', 'D'] }
+  ], [])
   
   // Load character model
   const { scene } = useGLTF('/models/characters/character-male-a.glb')
   
-  // Strip textures and apply material
+  // Strip textures to prevent 404 errors and black meshes
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
@@ -51,10 +49,10 @@ export default function HunterController() {
     return clone
   }, [scene])
   
-  // Keyboard controls state
+  // Keyboard controls
   const [, getKeyboardControls] = useKeyboardControls()
   
-  // Movement state
+  // Joystick state
   const joystickState = useRef({ x: 0, y: 0, isActive: false })
   const moveSpeed = 8
   
@@ -77,29 +75,26 @@ export default function HunterController() {
     }
   })
   
-  // Movement logic in useFrame
-  useFrame((state, delta) => {
+  // Movement logic
+  useFrame(() => {
     if (!rigidBodyRef.current) return
     
     const player = myPlayer()
     if (!player) return
     
-    // Get keyboard input
     const { forward, backward, left, right } = getKeyboardControls()
-    
-    // Calculate movement vector
     const moveDirection = new THREE.Vector3(0, 0, 0)
     let hasInput = false
     const joyState = joystickState.current
     
-    // Joystick input (mobile) - relative to screen/world
+    // Joystick input (screen-relative)
     if (joyState.isActive) {
       moveDirection.x += joyState.x
       moveDirection.z += joyState.y
       hasInput = true
     }
     
-    // Keyboard input (desktop) - relative to camera facing
+    // Keyboard input (camera-relative)
     if (forward || backward || left || right) {
       const cameraDirection = new THREE.Vector3()
       camera.getWorldDirection(cameraDirection)
@@ -117,12 +112,10 @@ export default function HunterController() {
       hasInput = true
     }
     
-    // Normalize and apply speed
     if (hasInput && moveDirection.length() > 0) {
       moveDirection.normalize()
-      
-      // Set velocity directly for responsive control
       const targetVelocity = moveDirection.multiplyScalar(moveSpeed)
+      
       rigidBodyRef.current.setLinvel({
         x: targetVelocity.x,
         y: rigidBodyRef.current.linvel().y,
@@ -135,7 +128,6 @@ export default function HunterController() {
         characterRef.current.rotation.y = targetRotation
       }
     } else {
-      // Stop horizontal movement when no input
       rigidBodyRef.current.setLinvel({
         x: 0,
         y: rigidBodyRef.current.linvel().y,
@@ -143,35 +135,34 @@ export default function HunterController() {
       }, true)
     }
     
-    // Sync position to Playroom for Operator (every frame)
+    // Sync position to Playroom
     const pos = rigidBodyRef.current.translation()
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
   })
   
   return (
     <>
-      {/* PointerLockControls for mouse look */}
-      <PointerLockControls ref={controlsRef} />
+      <PointerLockControls 
+        ref={controlsRef} 
+        onLock={() => setIsLocked(true)}
+        onUnlock={() => setIsLocked(false)}
+      />
       
-      {/* Physics Body */}
       <RigidBody
         ref={rigidBodyRef}
         type="dynamic"
         position={[0, 2, 0]}
         lockRotations
+        enabledRotations={[false, true, false]}
         colliders={false}
         mass={70}
         linearDamping={5}
         angularDamping={1}
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.9, 0]} />
-        <group ref={characterRef}>
-          {/* Character Model - positioned to align feet with capsule bottom */}
-          <primitive 
-            object={clonedScene} 
-            scale={1.5}
-            position={[0, -0.9, 0]}
-          />
+        
+        <group ref={characterRef} position={[0, -0.1, 0]}>
+          <primitive object={clonedScene} scale={0.6} />
         </group>
       </RigidBody>
     </>
