@@ -1,15 +1,15 @@
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
+import { useGLTF, OrbitControls, useKeyboardControls } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
-  const controlsRef = useRef(null)
+  const cameraControlsRef = useRef(null)
   const { camera } = useThree()
-  const [isLocked, setIsLocked] = useState(false)
+  const lastPos = useRef(new THREE.Vector3(0, 5, 0))
 
   // Load Model
   const { scene } = useGLTF('/models/characters/character-male-a.glb')
@@ -88,14 +88,35 @@ export default function HunterController() {
     // 4. Sync Network State
     const pos = rigidBodyRef.current.translation()
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
+
+    // 5. Chase Camera Logic
+    const currentPos = rigidBodyRef.current.translation()
+    
+    // Calculate delta movement
+    const delta = new THREE.Vector3().subVectors(currentPos, lastPos.current)
+    
+    // Move camera by delta
+    camera.position.add(delta)
+    
+    // Move orbit target to follow player
+    if (cameraControlsRef.current) {
+      cameraControlsRef.current.target.copy(currentPos)
+      cameraControlsRef.current.update()
+    }
+    
+    // Update last position
+    lastPos.current.copy(currentPos)
   })
 
   return (
     <>
-      <PointerLockControls 
-        ref={controlsRef} 
-        onLock={() => setIsLocked(true)} 
-        onUnlock={() => setIsLocked(false)} 
+      <OrbitControls
+        ref={cameraControlsRef}
+        makeDefault
+        enablePan={false}
+        minDistance={2}
+        maxDistance={10}
+        target={[0, 5, 0]}
       />
       
       <RigidBody 
