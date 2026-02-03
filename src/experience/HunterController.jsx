@@ -1,17 +1,14 @@
 import { useRef, useEffect, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGLTF, OrbitControls, useKeyboardControls } from '@react-three/drei'
+import { useGLTF, PointerLockControls, useKeyboardControls, PerspectiveCamera } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
-  const cameraControlsRef = useRef(null)
-  const { camera } = useThree()
-  const lastPos = useRef(new THREE.Vector3(0, 5, 0))
-
-  // Load Model
+  const pivotRef = useRef(null)
+  const [pivotObj, setPivotObj] = useState(null)
   const { scene } = useGLTF('/models/characters/character-male-a.glb')
 
   // Clean Textures & Apply Neon Skin
@@ -32,108 +29,85 @@ export default function HunterController() {
   const moveSpeed = 6
 
   useFrame(() => {
-    if (!rigidBodyRef.current) return
+    if (!rigidBodyRef.current || !pivotRef.current) return
     const player = myPlayer()
     if (!player) return
 
-    // 1. Get Inputs
+    // 1. TELEPORT PIVOT TO PLAYER (The "Selfie Stick" Attachment)
+    const pos = rigidBodyRef.current.translation()
+    pivotRef.current.position.set(pos.x, pos.y + 0.5, pos.z)
+
+    // 2. INPUTS (Relative to Camera View)
     const { forward, backward, left, right } = getKeyboardControls()
-    let joystick = { x: 0, y: 0, isActive: false }
     
+    let joystick = { x: 0, y: 0, isActive: false }
     try {
-        if (player.getJoystick) {
-            const j = player.getJoystick()
-            if (j) joystick = j
-        }
-    } catch (e) { }
+      if (player.getJoystick) {
+        const j = player.getJoystick()
+        if (j) joystick = j
+      }
+    } catch (e) {}
 
-    // 2. Calculate Movement Vector
-    const moveDirection = new THREE.Vector3(0, 0, 0)
-    let hasInput = false
+    const moveDir = new THREE.Vector3()
 
+    // Get Camera Facing Direction (from the Pivot)
+    const camDir = new THREE.Vector3()
+    pivotRef.current.getWorldDirection(camDir)
+    camDir.y = 0
+    camDir.normalize()
+
+    const camRight = new THREE.Vector3()
+    camRight.crossVectors(camDir, new THREE.Vector3(0, 1, 0))
+
+    if (forward) moveDir.add(camDir)
+    if (backward) moveDir.sub(camDir)
+    if (right) moveDir.add(camRight)
+    if (left) moveDir.sub(camRight)
+    
     if (joystick.isActive) {
-      moveDirection.x += joystick.x
-      moveDirection.z += joystick.y
-      hasInput = true
+      moveDir.x += joystick.x
+      moveDir.z += joystick.y
     }
 
-    if (forward || backward || left || right) {
-      const camDir = new THREE.Vector3()
-      camera.getWorldDirection(camDir)
-      camDir.y = 0
-      camDir.normalize()
-
-      const camRight = new THREE.Vector3()
-      camRight.crossVectors(camDir, new THREE.Vector3(0, 1, 0))
-
-      if (forward) moveDirection.add(camDir)
-      if (backward) moveDirection.sub(camDir)
-      if (right) moveDirection.add(camRight)
-      if (left) moveDirection.sub(camRight)
-      hasInput = true
-    }
-
-    // 3. Apply Physics
+    // 3. APPLY PHYSICS
     const currentVel = rigidBodyRef.current.linvel()
-    if (hasInput && moveDirection.lengthSq() > 0.001) {
-      moveDirection.normalize().multiplyScalar(moveSpeed)
-      rigidBodyRef.current.setLinvel({ x: moveDirection.x, y: currentVel.y, z: moveDirection.z }, true)
+    if (moveDir.lengthSq() > 0.001) {
+      moveDir.normalize().multiplyScalar(moveSpeed)
+      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: currentVel.y, z: moveDir.z }, true)
       
-      const angle = Math.atan2(moveDirection.x, moveDirection.z)
+      // Rotate Character to face movement
+      const angle = Math.atan2(moveDir.x, moveDir.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
       rigidBodyRef.current.setLinvel({ x: 0, y: currentVel.y, z: 0 }, true)
     }
 
-    // 4. Sync Network State
-    const pos = rigidBodyRef.current.translation()
+    // 4. SYNC
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
-
-    // 5. Chase Camera Logic
-    const currentPos = rigidBodyRef.current.translation()
-    
-    // Calculate delta movement
-    const delta = new THREE.Vector3().subVectors(currentPos, lastPos.current)
-    
-    // Move camera by delta
-    camera.position.add(delta)
-    
-    // Move orbit target to follow player
-    if (cameraControlsRef.current) {
-      cameraControlsRef.current.target.copy(currentPos)
-      cameraControlsRef.current.update()
-    }
-    
-    // Update last position
-    lastPos.current.copy(currentPos)
   })
 
   return (
     <>
-      <OrbitControls
-        ref={cameraControlsRef}
-        makeDefault
-        enablePan={false}
-        minDistance={2}
-        maxDistance={10}
-        target={[0, 5, 0]}
-      />
-      
+      {/* THE BOOM ARM (Pivot) */}
+      <group ref={(ref) => { pivotRef.current = ref; setPivotObj(ref) }}>
+        {/* THE CAMERA (Attached to arm, 4m behind) */}
+        <PerspectiveCamera makeDefault position={[0, 1, 4]} />
+      </group>
+
+      {/* CONTROLS (Rotate the Boom Arm) */}
+      {pivotObj && <PointerLockControls camera={pivotObj} />}
+
+      {/* THE PLAYER (Physical Body) */}
       <RigidBody 
         ref={rigidBodyRef} 
         colliders={false} 
         type="dynamic" 
-        position={[0, 5, 0]}
-        enabledRotations={[false, true, false]}
+        position={[0, 5, 0]} 
+        enabledRotations={[false, true, false]} 
         lockRotations
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-        
-        <primitive 
-          object={scene} 
-          scale={0.6} 
-          position={[0, -0.25, 0]} 
-        />
+        <primitive object={scene} scale={0.6} position={[0, -0.25, 0]} />
       </RigidBody>
     </>
   )
