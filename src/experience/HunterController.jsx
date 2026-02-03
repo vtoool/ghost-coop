@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
-import * as THREE from 'three'
+import { MeshStandardMaterial, Vector3 } from 'three'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
@@ -20,7 +20,7 @@ export default function HunterController() {
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
-        child.material = new THREE.MeshStandardMaterial({
+        child.material = new MeshStandardMaterial({
           color: '#FF6B35',
           emissive: '#FF6B35',
           emissiveIntensity: 0.5,
@@ -62,7 +62,7 @@ export default function HunterController() {
     console.log("Hunter controls active", true)
     
     const { forward, backward, left, right } = getKeyboardControls()
-    const moveDirection = new THREE.Vector3(0, 0, 0)
+    const moveDirection = new Vector3(0, 0, 0)
     let hasInput = false
     const joyState = joystickState.current
     
@@ -73,13 +73,13 @@ export default function HunterController() {
     }
     
     if (forward || backward || left || right) {
-      const cameraDirection = new THREE.Vector3()
+      const cameraDirection = new Vector3()
       camera.getWorldDirection(cameraDirection)
       cameraDirection.y = 0
       cameraDirection.normalize()
       
-      const cameraRight = new THREE.Vector3()
-      cameraRight.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0))
+      const cameraRight = new Vector3()
+      cameraRight.crossVectors(cameraDirection, new Vector3(0, 1, 0))
       
       if (forward) moveDirection.add(cameraDirection)
       if (backward) moveDirection.sub(cameraDirection)

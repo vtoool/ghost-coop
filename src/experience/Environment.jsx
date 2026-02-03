@@ -1,7 +1,7 @@
 import { useRef, useMemo, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
-import * as THREE from 'three'
+import { Color } from 'three'
 
 useGLTF.preload('/models/environment/gravestone-cross.glb')
 useGLTF.preload('/models/environment/pillar-large.glb')
@@ -127,7 +127,7 @@ function PropItem({ type, position, rotation, scale, gravestoneModel, pillarMode
       if (child.isMesh) {
         child.material.map = null
         child.material.needsUpdate = true
-        child.material.color = new THREE.Color('#4a4a4a')
+        child.material.color = new Color('#4a4a4a')
         child.castShadow = true
         child.receiveShadow = true
       }
