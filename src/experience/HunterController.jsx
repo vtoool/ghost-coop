@@ -7,11 +7,10 @@ import * as THREE from 'three'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
-  const pivotRef = useRef(null)
-  const [pivotObj, setPivotObj] = useState(null)
+  const [pivot, setPivot] = useState(null)
   const { scene } = useGLTF('/models/characters/character-male-a.glb')
 
-  // Clean Textures & Apply Neon Skin
+  // Texture cleanup
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
@@ -29,17 +28,18 @@ export default function HunterController() {
   const moveSpeed = 6
 
   useFrame(() => {
-    if (!rigidBodyRef.current || !pivotRef.current) return
+    if (!rigidBodyRef.current || !pivot) return
     const player = myPlayer()
     if (!player) return
 
-    // 1. TELEPORT PIVOT TO PLAYER (The "Selfie Stick" Attachment)
+    // 1. CHASE: Sync Pivot position to Player (Head height)
     const pos = rigidBodyRef.current.translation()
-    pivotRef.current.position.set(pos.x, pos.y + 0.5, pos.z)
+    pivot.position.set(pos.x, pos.y + 0.5, pos.z)
 
-    // 2. INPUTS (Relative to Camera View)
+    // 2. INPUT: Calculate movement relative to Camera/Pivot
     const { forward, backward, left, right } = getKeyboardControls()
     
+    // Joystick support
     let joystick = { x: 0, y: 0, isActive: false }
     try {
       if (player.getJoystick) {
@@ -49,55 +49,54 @@ export default function HunterController() {
     } catch (e) {}
 
     const moveDir = new THREE.Vector3()
+    
+    // Get Pivot's facing direction (Where the camera is looking)
+    const viewDir = new THREE.Vector3()
+    pivot.getWorldDirection(viewDir)
+    viewDir.y = 0 // Flatten
+    viewDir.normalize()
 
-    // Get Camera Facing Direction (from the Pivot)
-    const camDir = new THREE.Vector3()
-    pivotRef.current.getWorldDirection(camDir)
-    camDir.y = 0
-    camDir.normalize()
+    const viewRight = new THREE.Vector3()
+    viewRight.crossVectors(viewDir, new THREE.Vector3(0, 1, 0))
 
-    const camRight = new THREE.Vector3()
-    camRight.crossVectors(camDir, new THREE.Vector3(0, 1, 0))
-
-    if (forward) moveDir.add(camDir)
-    if (backward) moveDir.sub(camDir)
-    if (right) moveDir.add(camRight)
-    if (left) moveDir.sub(camRight)
+    if (forward) moveDir.add(viewDir)
+    if (backward) moveDir.sub(viewDir)
+    if (right) moveDir.add(viewRight)
+    if (left) moveDir.sub(viewRight)
     
     if (joystick.isActive) {
       moveDir.x += joystick.x
       moveDir.z += joystick.y
     }
 
-    // 3. APPLY PHYSICS
+    // 3. PHYSICS: Apply velocity
     const currentVel = rigidBodyRef.current.linvel()
     if (moveDir.lengthSq() > 0.001) {
       moveDir.normalize().multiplyScalar(moveSpeed)
       rigidBodyRef.current.setLinvel({ x: moveDir.x, y: currentVel.y, z: moveDir.z }, true)
       
-      // Rotate Character to face movement
+      // Face character towards movement
       const angle = Math.atan2(moveDir.x, moveDir.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
       rigidBodyRef.current.setLinvel({ x: 0, y: currentVel.y, z: 0 }, true)
     }
 
-    // 4. SYNC
+    // 4. NETWORK: Sync
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
   })
 
   return (
     <>
-      {/* THE BOOM ARM (Pivot) */}
-      <group ref={(ref) => { pivotRef.current = ref; setPivotObj(ref) }}>
-        {/* THE CAMERA (Attached to arm, 4m behind) */}
+      {/* BOOM ARM - Controls rotate THIS, not the camera directly */}
+      <group ref={setPivot}>
         <PerspectiveCamera makeDefault position={[0, 1, 4]} />
       </group>
 
-      {/* CONTROLS (Rotate the Boom Arm) */}
-      {pivotObj && <PointerLockControls camera={pivotObj} />}
+      {/* MOUSE LOCK - Attaches to pivot */}
+      {pivot && <PointerLockControls camera={pivot} selector="#root" />}
 
-      {/* THE PLAYER (Physical Body) */}
+      {/* PLAYER BODY */}
       <RigidBody 
         ref={rigidBodyRef} 
         colliders={false} 
