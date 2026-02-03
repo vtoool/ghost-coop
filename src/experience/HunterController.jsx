@@ -1,7 +1,7 @@
 import { useRef, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
-import { RigidBody } from '@react-three/rapier'
+import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
 
@@ -27,6 +27,7 @@ export default function HunterController() {
     const clone = scene.clone()
     clone.traverse((child) => {
       if (child.isMesh) {
+        child.material.map = null
         child.material = new THREE.MeshStandardMaterial({
           color: '#FF6B35',
           emissive: '#FF6B35',
@@ -141,11 +142,12 @@ export default function HunterController() {
         type="dynamic"
         position={[0, 2, 0]}
         lockRotations
-        colliders="capsule"
+        colliders={false}
         mass={70}
         linearDamping={5}
         angularDamping={1}
       >
+        <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.9, 0]} />
         <group ref={characterRef}>
           {/* Character Model */}
           <primitive 

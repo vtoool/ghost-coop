@@ -102,14 +102,15 @@ export default function Environment() {
 function PropItem({ type, position, rotation, scale, gravestoneModel, pillarModel }) {
   const modelRef = useRef()
   
-  // Clone the appropriate model
+  // Clone the appropriate model and clean up textures
   const model = useMemo(() => {
     const sourceModel = type === 'gravestone' ? gravestoneModel : pillarModel
     const cloned = sourceModel.clone()
     
-    // Apply material adjustments for visibility
     cloned.traverse((child) => {
       if (child.isMesh) {
+        child.material.map = null
+        child.material.color = new THREE.Color('#4a4a4a')
         child.castShadow = true
         child.receiveShadow = true
       }
@@ -123,7 +124,7 @@ function PropItem({ type, position, rotation, scale, gravestoneModel, pillarMode
       type="fixed"
       position={position}
       rotation={[0, rotation, 0]}
-      colliders="hull"
+      colliders="cuboid"
     >
       <primitive 
         ref={modelRef}
