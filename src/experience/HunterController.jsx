@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useGLTF, PointerLockControls, useKeyboardControls, PerspectiveCamera } from '@react-three/drei'
+import { useGLTF, PointerLockControls, useKeyboardControls, PerspectiveCamera, useAnimations } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
@@ -8,20 +8,32 @@ import * as THREE from 'three'
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
   const [pivot, setPivot] = useState(null)
-  const { scene } = useGLTF('/models/characters/character-male-a.glb')
+  const [currentAction, setCurrentAction] = useState("Idle")
 
+  const { scene, animations } = useGLTF('/models/characters/character-male-a.glb')
+  const { actions } = useAnimations(animations, scene)
+
+  // Texture Cleanup: Only enable shadows. Keep natural materials.
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
-        child.material.map = null
-        child.material.color.set('#FF6B35')
-        child.material.emissive.set('#FF6B35')
-        child.material.emissiveIntensity = 0.5
         child.castShadow = true
         child.receiveShadow = true
       }
     })
   }, [scene])
+
+  // Animation Switching Logic
+  useEffect(() => {
+    console.log("Available animations:", Object.keys(actions))
+    console.log("Switching to:", currentAction)
+    
+    const action = actions[currentAction] || actions["Idle"]
+    if (action) {
+      action.reset().fadeIn(0.2).play()
+      return () => action.fadeOut(0.2)
+    }
+  }, [currentAction, actions])
 
   const [, getKeyboardControls] = useKeyboardControls()
   const moveSpeed = 6
@@ -71,7 +83,14 @@ export default function HunterController() {
       moveDir.add(joyForward).add(joyRight)
     }
 
-    // 3. PHYSICS
+    // 3. ANIMATION STATE
+    const isMoving = moveDir.lengthSq() > 0.001
+    const targetAction = isMoving ? "Run" : "Idle"
+    if (targetAction !== currentAction) {
+      setCurrentAction(targetAction)
+    }
+
+    // 4. PHYSICS
     const currentVel = rigidBodyRef.current.linvel()
     if (moveDir.lengthSq() > 0.001) {
       moveDir.normalize().multiplyScalar(moveSpeed)
@@ -90,7 +109,6 @@ export default function HunterController() {
     <>
       {/* BOOM ARM */}
       <group ref={setPivot}>
-        {/* CAMERA: Lower Y, further Z for better framing */}
         <PerspectiveCamera makeDefault position={[0, 0.5, 5]} />
       </group>
 
