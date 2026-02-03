@@ -43,7 +43,6 @@ function ClickToPlay({ isHunter, isTouchDevice }) {
       className="fixed inset-0 flex items-center justify-center z-50 cursor-pointer bg-black/70 pointer-events-auto"
       onClick={() => setClicked(true)}
     >
-    >
       <div className="text-center pointer-events-none">
         <h2 className="text-4xl font-bold text-orange-500 mb-4">CLICK TO CAPTURE MOUSE</h2>
         <p className="text-white text-lg">Click anywhere to start controlling your Hunter</p>
