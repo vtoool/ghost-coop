@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGLTF, PointerLockControls, useKeyboardControls } from '@react-three/drei'
+import { useGLTF, PointerLockControls, useKeyboardControls, Center } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import { MeshStandardMaterial, Vector3 } from 'three'
@@ -126,11 +126,10 @@ export default function HunterController() {
         angularDamping={1}
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.9, 0]} />
-        <primitive 
-          object={scene} 
-          position={[0, -0.2, 0]} 
-          scale={0.6} 
-        />
+        
+        <Center bottom position={[0, 0.1, 0]}>
+          <primitive object={clonedScene} scale={0.6} />
+        </Center>
       </RigidBody>
     </>
   )
