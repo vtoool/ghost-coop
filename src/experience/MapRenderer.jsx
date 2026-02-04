@@ -57,6 +57,7 @@ export function MapRenderer() {
 function MapTile({ name, position, texture }) {
   const { scene } = useGLTF(`/models/environment/${name}.glb`)
   const [lanternPosition, setLanternPosition] = useState(null)
+  const [isLantern, setIsLantern] = useState(false)
   
   const clone = useMemo(() => {
     const c = scene.clone()
@@ -68,10 +69,18 @@ function MapTile({ name, position, texture }) {
         child.receiveShadow = true
       }
       // Find lantern position for light pooling
-      if ((name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) && child.isMesh) {
-        const worldPos = new THREE.Vector3()
-        child.getWorldPosition(worldPos)
-        setLanternPosition(worldPos)
+      if (name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) {
+        setIsLantern(true)
+        if (child.isMesh) {
+          const worldPos = new THREE.Vector3()
+          child.getWorldPosition(worldPos)
+          setLanternPosition(worldPos)
+          // Add emissive glow to lantern materials
+          if (child.material) {
+            child.material.emissive = new THREE.Color('#ffaa44')
+            child.material.emissiveIntensity = 0.5
+          }
+        }
       }
     })
     return c
@@ -84,12 +93,12 @@ function MapTile({ name, position, texture }) {
       </RigidBody>
       
       {/* Localized Warmth - Lantern Pool of Light */}
-      {lanternPosition && (
+      {isLantern && lanternPosition && (
         <pointLight
           position={[lanternPosition.x, lanternPosition.y + 0.5, lanternPosition.z]}
           color="#ffaa44"
-          intensity={2}
-          distance={8}
+          intensity={10}
+          distance={12}
           decay={2}
         />
       )}

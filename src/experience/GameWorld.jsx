@@ -38,11 +38,14 @@ export default function GameWorld() {
       <Stats />
       <PerformanceMonitor onDecline={() => setLowQuality(true)} />
 
+      {/* Background Color for Mist Effect */}
+      <color attach="background" args={['#050505']} />
+
       {/* Lighting - Dark Night Atmosphere */}
       <ambientLight intensity={0.2} />
       <directionalLight
         position={[10, 20, 10]}
-        intensity={1.5}
+        intensity={0.8}
         color="#1a1a2e"
         castShadow
         shadow-bias={-0.0004}
@@ -52,6 +55,9 @@ export default function GameWorld() {
         shadow-camera-top={50}
         shadow-camera-bottom={-50}
       />
+      
+      {/* Mist Fog */}
+      <fog attach="fog" args={['#050505', 2, 40]} />
       
       {/* Spooky accent lighting */}
       <pointLight position={[5, 5, 5]} intensity={0.8} color="#FF6B35" />
