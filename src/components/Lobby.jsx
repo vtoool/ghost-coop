@@ -57,19 +57,21 @@ function Lobby() {
   const otherPlayer = players.find(p => p.id !== me?.id)
   const otherPlayerReady = otherPlayer?.getState('ready') || false
   
-  // Compute button state - HONEST about why it's disabled
+  // Compute button state - OVERRIDE FOR SOLO DEV MODE
   const getButtonState = () => {
     if (!amIHost) return { 
       text: "WAITING FOR HOST...", 
       disabled: true,
       reason: "not-host"
     }
-    if (players.length < 2) return { 
-      text: "WAITING FOR PLAYER 2...", 
+    // FORCE SOLO MODE: Allow host to start with 1 player
+    if (players.length < 1) return { 
+      text: "WAITING FOR PLAYER...", 
       disabled: true,
-      reason: "waiting-p2"
+      reason: "waiting-p1"
     }
-    if (!roles.hunter || !roles.operator) return { 
+    // FORCE SOLO MODE: Skip role check for solo (auto-assign below)
+    if (players.length >= 2 && (!roles.hunter || !roles.operator)) return { 
       text: "ASSIGN ROLES FIRST", 
       disabled: true,
       reason: "no-roles"
@@ -79,13 +81,14 @@ function Lobby() {
       disabled: true,
       reason: "not-ready"
     }
-    if (!otherPlayerReady) return { 
+    // FORCE SOLO MODE: Skip other player check when solo
+    if (players.length >= 2 && !otherPlayerReady) return { 
       text: "WAITING FOR P2 READY", 
       disabled: true,
       reason: "p2-not-ready"
     }
     return { 
-      text: "START GHOST HUNT", 
+      text: players.length === 1 ? "▶ PLAY SOLO (DEV MODE)" : "START GHOST HUNT", 
       disabled: false,
       reason: "ready"
     }
@@ -96,8 +99,8 @@ function Lobby() {
   // Check if all players are ready
   const allReady = players.length > 0 && players.every(p => p.getState('ready'))
   
-  // Check if roles are assigned (both slots filled for 2-player game)
-  const rolesAssigned = roles.hunter && roles.operator && players.length === 2
+  // Check if roles are assigned (2-player OR solo dev mode with 1 player)
+  const rolesAssigned = (roles.hunter && roles.operator) || players.length === 1
   
   // Get player names for role cards
   const getPlayerName = (playerId) => {
@@ -163,10 +166,10 @@ function Lobby() {
       }
     }
     
-    // CASE B: Solo Play - Assign self as Operator
-    if (players.length === 1 && (!roles.operator || roles.operator !== me.id)) {
-      console.log('[Lobby] Solo mode: Assigning self as Operator')
-      setRoles({ hunter: null, operator: me.id })
+    // CASE B: Solo Play - Assign self as BOTH Hunter AND Operator (FORCE SOLO MODE)
+    if (players.length === 1 && (!roles.hunter || !roles.operator)) {
+      console.log('[Lobby] Solo mode: Assigning self as BOTH Hunter and Operator')
+      setRoles({ hunter: me.id, operator: me.id })
     }
     
     // CASE C: Clear departed player roles
@@ -226,9 +229,13 @@ function Lobby() {
     setRoles(newRoles)
   }
   
-  // Host starts the game
+  // Host starts the game - FORCE SOLO MODE
   const handleStartGame = () => {
-    if (amIHost && allReady && rolesAssigned) {
+    // Allow solo play: 1 player + host + ready (skip rolesAssigned check for solo)
+    const canStartSolo = amIHost && isReady && players.length === 1
+    const canStartMulti = amIHost && allReady && rolesAssigned && players.length >= 2
+    
+    if (canStartSolo || canStartMulti) {
       setGamePhase('playing')
       setGameStart(true)
     }
@@ -553,11 +560,13 @@ function Lobby() {
             <span className="font-mono text-xs text-[#F0F0F0]/40">
               {buttonState.reason === 'not-host' && "👑 Only Host can start"}
               {buttonState.reason === 'waiting-p2' && "⏳ Waiting for Player 2..."}
+              {buttonState.reason === 'waiting-p1' && "⏳ Waiting for player to join..."}
               {buttonState.reason === 'no-roles' && amIHost && "🎭 Host: Click SWAP ROLES to assign"}
               {buttonState.reason === 'no-roles' && !amIHost && "🎭 Waiting for role assignment..."}
               {buttonState.reason === 'not-ready' && "✋ Click READY FOR HAUNT first"}
               {buttonState.reason === 'p2-not-ready' && "⏳ Waiting for other player to ready up..."}
-              {buttonState.reason === 'ready' && "🚀 Ready to launch!"}
+              {buttonState.reason === 'ready' && players.length === 1 && "🎮 SOLO DEV MODE ACTIVE"}
+              {buttonState.reason === 'ready' && players.length >= 2 && "🚀 Ready to launch!"}
             </span>
           </div>
           
