@@ -1,10 +1,10 @@
 # Ecto-Busters — Universal 2-Player Async Co-op Game
 
-> **A real-time multiplayer ghost hunting experience built with React, PlayroomKit, and Three.js**
+> **A real-time multiplayer ghost hunting experience built with React, PlayroomKit, Three.js, and Rapier Physics**
 
 **Live URL:** https://ghost-coop.vercel.app
 
-**Current Phase:** Phase 1 Complete (Lobby & Connection), Phase 2 Pending (3D Game World)
+**Current Phase:** Phase 2 Complete (Multiplayer Core & Level Architecture)
 
 ---
 
@@ -13,18 +13,18 @@
 1. [Executive Summary](#executive-summary)
 2. [Tech Stack Deep Dive](#tech-stack-deep-dive)
 3. [Architecture Patterns](#architecture-patterns)
-4. [Development Strategy](#development-strategy)
-5. [Known Issues & Solutions](#known-issues--solutions)
-6. [Testing Strategy](#testing-strategy)
-7. [Deployment Pipeline](#deployment-pipeline)
-8. [Common Failures & Fixes](#common-failures--fixes)
-9. [Next Steps for Phase 2](#next-steps-for-phase-2)
+4. [Level Design System](#level-design-system)
+5. [Character Controller](#character-controller)
+6. [Known Issues & Solutions](#known-issues--solutions)
+7. [Testing Strategy](#testing-strategy)
+8. [Deployment Pipeline](#deployment-pipeline)
+9. [Next Steps](#next-steps)
 
 ---
 
 ## Executive Summary
 
-**Ecto-Busters** is a universal async co-op game where one player hosts (displays the game world) and others join as controllers. The architecture is designed to work identically across all devices—no "Desktop" vs "Mobile" discrimination.
+**Ecto-Busters** is a universal async co-op game where one player hosts (displays the 3D game world) and others join as controllers. The architecture works identically across all devices—no "Desktop" vs "Mobile" discrimination.
 
 ### Core Philosophy
 
@@ -32,21 +32,32 @@
 - **Mobile-First:** All interactions work on touch devices
 - **Real-time Sync:** PlayroomKit provides WebRTC-based multiplayer
 - **Visual Polish:** Spooky orange theme with floating animations
+- **Procedural Levels:** ASCII map system with auto-tiling floor generation
 
 ### Current State
 
 ✅ **Phase 1 (COMPLETE):**
-- Lobby system with QR codes
+- Lobby system with QR codes and room codes
 - Player ready/unready states
-- Host-only game start
+- Host-only game start with validation
 - LocalStorage profile persistence
 - Visual regression testing with Playwright
 
-⏳ **Phase 2 (PENDING):**
-- React Three Fiber 3D scene
-- Player avatars in 3D world
-- Ghost hunting mechanics
-- Mobile controller inputs
+✅ **Phase 2 (COMPLETE):**
+- React Three Fiber 3D scene with Rapier physics
+- TPS (Third-Person Shooter) camera with boom-arm rig
+- Character controller with physics-based movement
+- ASCII map system with procedural tile generation
+- Auto-tiling floor: rounded edges + square centers
+- Multi-kit asset pipeline (Platformer + Nature + Graveyard kits)
+- Solo Dev Mode for testing without multiplayer
+
+⏳ **Phase 3 (PENDING):**
+- Ghost entity with AI movement
+- Ghost capture mechanics
+- Operator role implementation (mocked as 'CPU_MOCK')
+- Score system and win conditions
+- Mobile virtual joystick controls
 
 ---
 
@@ -57,17 +68,26 @@
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | **React** | 19.2.0 | UI framework with StrictMode |
-| **Vite** | 7.2.4 | Build tool, dev server, HMR |
+| **Vite** | 7.3.4 | Build tool, dev server, HMR |
 | **PlayroomKit** | 0.0.95 | WebRTC multiplayer networking |
 | **Zustand** | 5.0.10 | UI state management (NOT multiplayer state) |
 
-### 3D Stack (Phase 2)
+### 3D Stack
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | **Three.js** | 0.182.0 | 3D graphics library |
 | **React Three Fiber** | 9.5.0 | React renderer for Three.js |
-| **Drei** | 10.7.7 | R3F helpers (OrbitControls, Environment, etc.) |
+| **Drei** | 10.7.7 | R3F helpers (PointerLockControls, PerspectiveCamera, useAnimations) |
+| **Rapier** | 0.13.0 | Physics engine (RigidBody, CapsuleCollider) |
+
+### Physics Configuration
+
+| Component | Type | Settings |
+|-----------|------|----------|
+| Character | dynamic | enabledRotations: [false, true, false], lockRotations: true |
+| Floor Tiles | fixed | colliders: hull |
+| Invisible Base | fixed | CuboidCollider args: [50, 1, 50] at y: -1 |
 
 ### Styling
 
@@ -89,8 +109,6 @@
 |------------|---------|---------|
 | **Playwright** | 1.58.1 | E2E testing, visual regression |
 | **ESLint** | 9.39.1 | Code linting with React hooks plugin |
-| **PostCSS** | 8.5.6 | CSS processing for Tailwind v4 |
-| **Autoprefixer** | 10.4.24 | CSS vendor prefixing |
 
 ---
 
@@ -106,27 +124,22 @@ PlayroomKit initialization **MUST** happen before React renders. This prevents t
 // ✅ CORRECT — Async bootstrapper
 async function bootstrap() {
   try {
-    // Initialize Playroom FIRST
     await insertCoin({
       skipLobby: true,
       streamMode: true,
     })
     
-    // Only THEN render React
     createRoot(document.getElementById('root')).render(
       <StrictMode>
         <App />
       </StrictMode>
     )
   } catch (error) {
-    // Show user-friendly error
     document.getElementById('root').innerHTML = '...'
   }
 }
 bootstrap()
 ```
-
-**Why this matters:** Calling `insertCoin()` inside a React component (e.g., in `useEffect`) causes React to render once, then Playroom initializes and triggers a re-render, causing visual flicker and state inconsistencies.
 
 ### State Management Hierarchy
 
@@ -137,29 +150,20 @@ bootstrap()
 | **Player Data** | Playroom | `myPlayer().setState()` | `profile`, `ready` status |
 | **Player List** | Playroom | `usePlayersList()` | All connected players |
 
-**CRITICAL RULE:** Never duplicate Playroom state into local React state. Always read directly from the source:
+**CRITICAL RULE:** Never duplicate Playroom state into local React state.
 
-```javascript
-// ✅ CORRECT — Read from Playroom directly
-const players = usePlayersList()
-const [gameStart] = useMultiplayerState('gameStart', false)
-
-// ❌ WRONG — Duplicating state causes sync bugs
-const [players, setPlayers] = useState([])
-useEffect(() => {
-  setPlayers(usePlayersList()) // Don't do this!
-}, [])
-```
-
-### Manager Pattern
+### View Manager Pattern
 
 ```
 main.jsx (Bootstrapper)
     ↓
-GameManager (Zustand Store)
-    ↓
-├── Interface (UI Layer) — React components
-└── Experience (3D Layer) — R3F scene (Phase 2)
+App.jsx (View Manager)
+    ├── Lobby.jsx (Universal Lobby UI)
+    └── Game.jsx (R3F Canvas Wrapper)
+        └── GameWorld.jsx
+            ├── MapRenderer.jsx (Procedural Map)
+            ├── HunterController.jsx (Player)
+            └── Ghost (CPU_MOCK)
 ```
 
 ### Universal Design (Host/Join)
@@ -173,292 +177,242 @@ GameManager (Zustand Store)
 | "Desktop View" | "STREAMER VIEW" |
 | "Mobile Controller" | "CONTROLLER VIEW" |
 
-The UI uses `isHost()` from PlayroomKit to determine roles, not user agent detection.
+---
+
+## Level Design System
+
+### ASCII Map Format
+
+**Location:** `src/experience/LevelMap.js`
+
+Levels are designed as text grids using ASCII characters:
+
+```javascript
+export const level1 = [
+  "####################",
+  "#^...++..L..++...^.#",
+  "#...*..*...*..*....#",
+  "#..T.....C.....T...#",
+  "#..................#",
+  "#^.......=.......^.#",
+  "####################",
+]
+```
+
+### Map Legend
+
+| Character | GLB Model | Kit |
+|-----------|-----------|-----|
+| `#` | iron-fence | Graveyard |
+| `^` | pine-crooked | Nature |
+| `T` | pine | Nature |
+| `+` | gravestone-cross | Graveyard |
+| `*` | gravestone-round | Graveyard |
+| `C` | crypt | Graveyard |
+| `L` | lantern-candle | Graveyard |
+| `=` | iron-fence-border-gate | Graveyard |
+
+### Auto-Tiling Floor System
+
+**Location:** `src/experience/MapRenderer.jsx`
+
+The floor system procedurally generates tile edges and centers:
+
+1. **Rounded Edges:** `block-grass.glb` (Platformer Kit) for perimeter tiles
+2. **Square Centers:** `block-grass-square.glb` (Nature Kit converted) for interior tiles
+
+```javascript
+const isEdge = x === 0 || x === width - 1 || z === 0 || z === height - 1
+const model = isEdge ? roundedClone : squareClone
+```
+
+### Texture Unification
+
+Different kits use different texture atlases. The system forces visual consistency:
+
+| Asset | Texture Method |
+|-------|---------------|
+| **Platformer Edges** | `colormap_platformer.png` (applied via GLB) |
+| **Nature Squares** | Solid hex color `#63a73c` (UV mismatch workaround) |
+| **Graveyard Props** | `colormap_graveyard.png` (applied via GLB) |
+
+**Important:** Nature Kit blocks have UV mapping that doesn't align with Platformer textures. Use solid hex color instead of texture mapping.
+
+### Grid Configuration
+
+```javascript
+const gridSize = 2  // 2x2 unit tiles
+const offsetX = width * gridSize / 2  // Center the map
+const offsetZ = height * gridSize / 2
+```
 
 ---
 
-## Development Strategy
+## Character Controller
 
-### Local Development
+### TPS Camera Rig
 
-```bash
-# Install dependencies
-npm install
+**Location:** `src/experience/HunterController.jsx`
 
-# Start dev server
-npm run dev
-
-# Run tests
-npm run test
-
-# Run tests with UI
-npm run test:ui
-
-# Lint code
-npm run lint
-```
-
-### Project Structure
+The character uses a boom-arm camera pattern:
 
 ```
-src/
-├── main.jsx                 # Bootstrapper — NEVER touch
-├── App.jsx                  # View manager (lobby vs game)
-├── index.css               # Global styles + Tailwind
-├── components/
-│   └── Lobby.jsx           # Universal lobby UI
-├── stores/
-│   └── useGameStore.js     # Zustand UI state
-└── utils/
-    └── playerStorage.js    # LocalStorage persistence
-
-tests/
-├── visual.spec.js          # Visual regression tests
-├── two-player.spec.js      # Multiplayer flow tests
-└── *.spec.js               # Feature-specific tests
+Character (RigidBody)
+    └── Boom Arm (Group @ waist height)
+            └── Camera (3.5m behind player)
 ```
 
-### Key Files Reference
-
-| File | Purpose | Critical? |
-|------|---------|-----------|
-| `src/main.jsx` | Bootstrapper — initializes Playroom before React | ✅ YES |
-| `src/App.jsx` | View manager — switches between Lobby and Game | ✅ YES |
-| `src/components/Lobby.jsx` | Universal lobby — name input, ready states, QR codes | ✅ YES |
-| `src/stores/useGameStore.js` | Zustand store for UI state (NOT multiplayer state) | ⚠️ READ-ONLY |
-| `src/utils/playerStorage.js` | LocalStorage for profile persistence | ✅ YES |
-| `STYLE_GUIDE.md` | Visual design system | 📋 Reference |
-| `rules.md` | Coding standards | 📋 Reference |
-| `AGENTS.md` | Project status and memory log | 📋 Reference |
-
-### CSS Architecture
-
-**Global Resets (index.css):**
-```css
-* {
-  touch-action: none;      /* Prevent zoom/scroll */
-  user-select: none;        /* Prevent text selection */
-  -webkit-user-select: none;
-}
+```jsx
+<group ref={setPivot}>
+  <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
+</group>
+{pivot && <PointerLockControls camera={pivot} selector="#root" />}
 ```
 
-**Tailwind Configuration:**
-- Tailwind v4 with PostCSS
-- Custom animations defined in index.css (float, flicker, pulse-glow)
-- Spooky orange color palette: `#FF6B35` (Neon Pumpkin), `#00F0FF` (Ectoplasm Cyan)
+### Movement System
+
+**Input Sources:**
+1. Keyboard: WASD via `useKeyboardControls`
+2. Joystick: Mobile via `player.getJoystick()`
+
+**Direction Calculation:**
+```javascript
+// Get camera facing direction (ignores Y)
+viewDir.negate()  // Camera points AT player, we want AWAY
+
+// Calculate movement vectors
+moveDir.add(viewDir)    // Forward
+moveDir.sub(viewDir)     // Backward
+moveDir.add(viewRight)   // Right
+moveDir.sub(viewRight)   // Left
+```
+
+### Animation States
+
+The character model (`character-male-a.glb`) supports:
+
+| State | Trigger |
+|-------|---------|
+| `idle` | No movement input |
+| `sprint` | Movement input detected |
+
+**Animation Names:** Kenney assets use lowercase internal names (`"idle"`, `"sprint"`).
+
+### Physics Configuration
+
+```jsx
+<RigidBody 
+  type="dynamic"
+  position={[0, 5, 0]}  // Spawn in air
+  enabledRotations={[false, true, false]}  // Y-rotation only
+  lockRotations={true}
+>
+  <CapsuleCollider args={[0.5, 0.3]} />
+</RigidBody>
+```
+
+### Shadow Bias Fix
+
+To prevent shadow acne on the character:
+```jsx
+child.castShadow = true
+child.receiveShadow = true
+// Applied in scene.traverse() on mount
+```
 
 ---
 
 ## Known Issues & Solutions
 
-### Issue 1: PlayroomKit Session Restoration
+### Issue 1: Nature Kit Texture Mismatch
 
-**Problem:** PlayroomKit automatically restores previous sessions from IndexedDB, interfering with "first-time" user testing.
+**Problem:** Square grass blocks render black/glitchy.
 
-**Evidence:** Test screenshots show "Cornflakes47" auto-loaded from previous session.
+**Cause:** The Nature Kit model's UV mapping doesn't align with `colormap_platformer.png`.
+
+**Solution:** Apply solid hex color instead of texture:
+```javascript
+child.material = new THREE.MeshStandardMaterial({
+  color: '#63a73c',  // Kenney Grass Green
+  roughness: 0.8,
+})
+```
+
+---
+
+### Issue 2: Shadow Acne
+
+**Problem:** Character shows stripey shadow artifacts.
+
+**Solution:** Adjust shadow bias in renderer (already applied in Game.jsx):
+```javascript
+shadowMap.bias = -0.0001
+```
+
+---
+
+### Issue 3: Rounded Edge Gaps
+
+**Problem:** Platformer Kit blocks have rounded corners, creating star-shaped gaps.
+
+**Solution:** Reduce gridSize from 2 to 1.75 for overlap:
+```javascript
+const gridSize = 1.75  // Forces 0.25 unit overlap
+```
+
+---
+
+### Issue 4: PlayroomKit Session Restoration
+
+**Problem:** Previous sessions auto-load, interfering with testing.
 
 **Solution:** Clear storage before tests:
-
 ```javascript
-// Add to test.beforeEach
 await page.evaluate(() => {
   indexedDB.deleteDatabase('playroom')
   localStorage.clear()
 })
 ```
 
-**Status:** Fixed in test files ✅
-
 ---
 
-### Issue 2: Initialization Timing Inconsistencies
+### Issue 5: Button Text Mismatch
 
-**Problem:** PlayroomKit initialization takes 8-15 seconds in production. Default 5s test timeout captures wrong states.
+**Problem:** Tests fail looking for "READY" but button says "READY FOR HAUNT".
 
-**Evidence:** Screenshots show "Joining existing game..." stuck because lobby never loads within timeout.
-
-**Solution:** Extended waits:
-
-```javascript
-test.beforeEach(async ({ page }) => {
-  await page.goto('https://ghost-coop.vercel.app')
-  await page.waitForTimeout(8000) // Increased from 3000ms
-})
-```
-
-**Status:** Fixed in playwright.config.js ✅
-
----
-
-### Issue 3: Room Code Format Discovery
-
-**Problem:** Room code format is `#r=XXXXX` not `#XXXXX` as initially assumed.
-
-**Evidence:** `window.location.hash.slice(1)` returns "r=EU6XD" not "EU6XD".
-
-**Solution:** Updated extraction logic in Lobby.jsx:
-
-```javascript
-// src/components/Lobby.jsx:125
-const roomCode = window.location.hash?.slice(1) || 'Unknown'
-// Now handles both formats
-```
-
-**Status:** Fixed ✅
-
----
-
-### Issue 4: Button Text Mismatches
-
-**Problem:** Button text is "READY FOR HAUNT" not "READY" as initially coded.
-
-**Evidence:** Test selectors `locator('button:has-text("READY")')` fail.
-
-**Solution:** Updated all test selectors:
-
-```javascript
-// tests/visual.spec.js:98
-const readyButton = page.locator('button:has-text("READY FOR HAUNT")')
-```
-
-**Status:** Fixed ✅
-
----
-
-### Issue 5: Visual State Confusion
-
-**Problem:** "Joining existing game..." status persists while buttons remain active.
-
-**Evidence:** Screenshot shows both "Joining..." text AND "ENTER THE HAUNTED HOUSE" button.
-
-**Root Cause:** PlayroomKit takes time to determine if user is host or joining. The UI shows "Joining..." optimistically but allows interaction.
-
-**Solution:** This is expected behavior. The 3-second grace period (`isPlayerJoining`) handles new players without names.
-
-**Status:** Working as designed ✅
-
----
-
-### Issue 6: Multi-Context Browser Isolation
-
-**Problem:** Playwright contexts share some state unexpectedly, causing race conditions in 2-player tests.
-
-**Evidence:** Host and joiner sessions occasionally interfere.
-
-**Solution:** Use `launchPersistentContext` with unique userDataDirs:
-
-```javascript
-// tests/two-player.spec.js
-const hostContext = await chromium.launchPersistentContext('./host-user-data')
-const joinerContext = await chromium.launchPersistentContext('./joiner-user-data')
-```
-
-**Status:** Implemented ✅
-
----
-
-### Issue 7: Screenshot Analysis Feedback Loop
-
-**Problem:** No automated visual verification loop. Manual review needed for every screenshot.
-
-**Solution:** Use MiniMax image understanding tool in workflow:
-
-```javascript
-// Pseudo-code for automated verification
-const screenshot = await page.screenshot()
-const analysis = await MiniMax_understand_image({
-  image_source: screenshot,
-  prompt: "Verify spooky orange theme, Creepster font, no Desktop/Mobile text"
-})
-```
-
-**Status:** Available but requires manual invocation ⚠️
+**Solution:** Use exact button text in selectors.
 
 ---
 
 ## Testing Strategy
 
-### Test Architecture
-
-**Framework:** Playwright with Chromium
-**Target:** Production deployment at https://ghost-coop.vercel.app
-**Approach:** Visual regression + functional E2E
-
 ### Test Types
 
-1. **Visual Regression Tests** (`tests/visual.spec.js`)
-   - Welcome screen desktop/mobile views
-   - Lobby screen with name entered
+1. **Visual Regression** (`tests/visual.spec.js`)
+   - Welcome screen desktop/mobile
+   - Lobby with name entered
    - Style guide verification
-   - Screenshots saved to `test-results/`
 
-2. **Two-Player Flow Tests** (`tests/two-player*.spec.js`)
+2. **Two-Player Flow** (`tests/two-player*.spec.js`)
    - Host creates room
    - Joiner scans QR/enters URL
-   - Both players ready up
-   - Host starts game
-   - Game state transitions
-
-3. **Functional Tests** (`tests/test-scenario-*.spec.js`)
-   - Button click handlers
-   - State persistence
-   - Error boundaries
+   - Both ready up, host starts
 
 ### Running Tests
 
 ```bash
-# All tests
-npm run test
-
-# With UI mode for debugging
-npm run test:ui
-
-# Headed mode (see browser)
-npm run test:headed
-
-# Specific test file
-npx playwright test tests/visual.spec.js
-
-# Two-player tests (requires headed mode)
-npm run test:two-player
+npm run test          # All tests
+npm run test:ui       # With UI mode
+npx playwright test   # Direct invocation
 ```
 
-### Test Configuration
-
-**File:** `playwright.config.js`
-
-```javascript
-export default defineConfig({
-  testDir: './tests',
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
-  use: {
-    baseURL: 'https://ghost-coop.vercel.app',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-  },
-  projects: [
-    { name: 'Desktop Chrome', use: { ...devices['Desktop Chrome'] } },
-    { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
-  ],
-})
-```
-
-### Testing Limitations (Documented)
+### Testing Limitations
 
 See `testing_limitations.md` for:
 - Session restoration interference
-- Initialization timing issues
-- Button text mismatches
-- Visual state confusion
+- Initialization timing (8+ seconds)
 - Multi-context isolation
-- Screenshot analysis workflow
-- Network throttling constraints
-- Mobile touch event simulation
-- Cross-browser compatibility gaps
+- Mobile touch simulation
 
 ---
 
@@ -478,178 +432,52 @@ vercel
 vercel --prod
 ```
 
-### CI/CD Integration
+### CI/CD
 
-The project is configured for automatic Vercel deployments on git push. No manual build step required.
+Automatic deployments on git push. No manual build step required.
 
 ### Pre-Deploy Checklist
 
 - [ ] Run `npm run lint` — no errors
 - [ ] Run `npm run test` — all tests pass
 - [ ] Verify `STYLE_GUIDE.md` compliance
-- [ ] Check `rules.md` non-negotiables
 
 ---
 
-## Common Failures & Fixes
+## Next Steps
 
-### Failure 1: "Double Lobby" / Race Condition
+### Phase 3: Gameplay Mechanics
 
-**Symptom:** Lobby appears twice, or UI flickers on load.
-
-**Cause:** `insertCoin()` called inside a React component instead of the bootstrapper.
-
-**Fix:** 
-```javascript
-// ❌ WRONG — In a component
-useEffect(() => {
-  insertCoin() // NO!
-}, [])
-
-// ✅ CORRECT — In main.jsx only
-await insertCoin({ skipLobby: true, streamMode: true })
-```
-
----
-
-### Failure 2: Tests Timeout on Initialization
-
-**Symptom:** Tests fail with timeout waiting for lobby to appear.
-
-**Cause:** Default 3s wait insufficient for PlayroomKit production initialization.
-
-**Fix:** Increase wait times:
-```javascript
-await page.waitForTimeout(8000) // 8 seconds
-```
-
----
-
-### Failure 3: "Desktop" or "Mobile" Text Appears
-
-**Symptom:** Style guide violation, UI shows device-specific terms.
-
-**Cause:** Hardcoded strings or user agent detection.
-
-**Fix:** Use PlayroomKit's `isHost()`:
-```javascript
-const role = isHost() ? 'HOST' : 'JOIN'
-// NOT: const isMobile = /Mobi/i.test(navigator.userAgent)
-```
-
----
-
-### Failure 4: State Sync Issues
-
-**Symptom:** Players don't see each other's ready states.
-
-**Cause:** Duplicating Playroom state into React state.
-
-**Fix:** Read directly from Playroom:
-```javascript
-const players = usePlayersList() // ✅ Direct
-// NOT: const [players, setPlayers] = useState(usePlayersList()) // ❌ Duplicated
-```
-
----
-
-### Failure 5: Profile Not Persisting
-
-**Symptom:** User has to re-enter name on page refresh.
-
-**Cause:** `playerStorage.js` not called or localStorage blocked.
-
-**Fix:** Check browser console for errors. Ensure `setStoredProfile()` is called after `me.setState('profile', profile)`.
-
----
-
-## Next Steps for Phase 2
-
-### 3D World Implementation
-
-**Components Needed:**
-
-1. **R3F Canvas Setup**
-   ```javascript
-   import { Canvas } from '@react-three/fiber'
-   
-   function Experience() {
-     return (
-       <Canvas camera={{ position: [0, 5, 10], fov: 60 }}>
-         <GameWorld />
-       </Canvas>
-     )
-   }
-   ```
-
-2. **Player Avatars**
-   - Use `usePlayersList()` to get all players
-   - Render 3D models at player positions
-   - Sync positions via `useMultiplayerState('playerPositions')`
-
-3. **Ghost Entities**
-   - AI-driven ghost movement
-   - Sync ghost state to all players
+1. **Ghost Entity**
+   - AI-driven movement patterns
+   - Sync ghost state via `useMultiplayerState`
    - Collision detection with players
+   - Capture/respawn mechanics
 
-4. **Mobile Controls**
+2. **Operator Role**
+   - Replace 'CPU_MOCK' with real Operator player
+   - Orthographic camera (top-down view)
+   - Ghost tracking HUD
+   - Ability to reveal ghost positions
+
+3. **Mobile Controls**
    - Virtual joystick for movement
    - Action buttons (flashlight, trap)
-   - Gyroscope for camera (optional)
+   - Touch-friendly aim controls
 
-### File Structure (Phase 2)
+4. **Score System**
+   - Points for ghost captures
+   - Team score tracking
+   - Win/lose conditions
 
-```
-src/
-├── components/
-│   ├── Lobby.jsx           # Existing
-│   ├── Game.jsx            # NEW: R3F canvas wrapper
-│   └── ui/
-│       ├── Joystick.jsx    # NEW: Mobile controls
-│       └── ActionButton.jsx # NEW: Game actions
-├── experience/
-│   ├── GameWorld.jsx       # NEW: 3D scene composition
-│   ├── PlayerAvatar.jsx    # NEW: Player 3D model
-│   ├── Ghost.jsx           # NEW: Ghost entity
-│   └── Environment.jsx     # NEW: Haunted house models
-└── hooks/
-    └── usePlayerPosition.js  # NEW: Position sync hook
-```
+### Asset Requirements
 
-### Dependencies to Add
-
-```bash
-npm install @react-three/drei@^10.7.7 three@^0.182.0
-```
-
-Already in `package.json` — just need to import and use.
-
----
-
-## For Second Opinion AI
-
-### What to Review
-
-1. **Architecture:** Is the bootstrapper pattern correct? Are we following the state hierarchy?
-2. **Testing:** Are the Playwright tests comprehensive? What's missing?
-3. **Phase 2 Planning:** Is the 3D integration strategy sound?
-4. **Known Issues:** Are the documented issues accurate? Any we missed?
-5. **Rules Compliance:** Does the code follow `rules.md` non-negotiables?
-
-### Key Questions
-
-- Should we add TypeScript for Phase 2?
-- Is the current testing approach sufficient for 3D scenes?
-- Any better patterns for multiplayer state sync?
-- Should we add error boundaries for R3F scenes?
-
-### Files to Check
-
-1. `src/main.jsx` — Bootstrapper correctness
-2. `src/App.jsx` — View manager logic
-3. `src/components/Lobby.jsx` — Universal design compliance
-4. `tests/visual.spec.js` — Test coverage
-5. `rules.md` — Standards enforcement
+| Asset | Purpose | Source |
+|-------|---------|--------|
+| Ghost model | Ghost entity | Kenney Ghosts Kit |
+| Trap model | Capture mechanic | Kenney Horror Kit |
+| Flashlight model | Player item | Kenney Modular |
+| UI icons | HUD elements | STYLE_GUIDE.md |
 
 ---
 
@@ -657,11 +485,13 @@ Already in `package.json` — just need to import and use.
 
 - **PlayroomKit Docs:** https://docs.joinplayroom.com
 - **R3F Docs:** https://docs.pmndrs.react-three-fiber.io
+- **Rapier Physics:** https://rapier.react-three-fiber.xyz
 - **Tailwind v4:** https://tailwindcss.com/docs/v4-beta
-- **Vercel:** https://vercel.com/docs
+- **Kenney Assets:** https://kenney.nl/assets
 
 ---
 
-*Last Updated: 2026-02-03*  
-*Phase 1 Status: COMPLETE ✅*  
-*Phase 2 Status: READY TO START ⏳*
+*Last Updated: 2026-02-04*
+*Phase 1 Status: COMPLETE ✅*
+*Phase 2 Status: COMPLETE ✅*
+*Phase 3 Status: READY TO START ⏳*
