@@ -9,6 +9,7 @@ import { useShadowTexture } from '../hooks/useShadowTexture'
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
   const shadowRef = useRef(null)
+  const playerGroupRef = useRef(null)
   const [pivot, setPivot] = useState(null)
   const [currentAction, setCurrentAction] = useState("idle")
   const { scene, camera } = useThree()
@@ -45,7 +46,7 @@ export default function HunterController() {
   const jumpVelocity = 8
 
   useFrame(() => {
-    if (!rigidBodyRef.current || !pivot) return
+    if (!rigidBodyRef.current || !pivot || !playerGroupRef.current) return
     const player = myPlayer()
     if (!player) return
 
@@ -85,7 +86,7 @@ export default function HunterController() {
 
     let targetY = vel.y
 
-    if (jump && groundDistance.current < 0.5) {
+    if (jump && groundDistance.current < 0.5 && groundDistance.current > 0.1) {
       targetY = jumpVelocity
     }
 
@@ -120,13 +121,16 @@ export default function HunterController() {
       
       const validHit = intersects.find(hit => {
         const obj = hit.object
+        
         if (obj.type === 'Sprite') return false
-        if (shadowRef.current && (obj === shadowRef.current || shadowRef.current.children.includes(obj))) {
-          return false
+        if (hit.distance < 0.3) return false
+        
+        let currentObj = obj
+        while (currentObj) {
+          if (currentObj === playerGroupRef.current) return false
+          currentObj = currentObj.parent
         }
-        if (obj === characterScene || characterScene.children.includes(obj)) {
-          return false
-        }
+        
         return true
       })
 
@@ -154,34 +158,36 @@ export default function HunterController() {
 
   return (
     <>
-      <group ref={setPivot}>
-        <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
+      <group ref={playerGroupRef}>
+        <group ref={setPivot}>
+          <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
+        </group>
+
+        {pivot && <PointerLockControls camera={pivot} selector="#root" />}
+
+        <RigidBody 
+          ref={rigidBodyRef} 
+          colliders={false} 
+          type="dynamic" 
+          position={[0, 5, 0]} 
+          enabledRotations={[false, true, false]} 
+          lockRotations
+        >
+          <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
+          <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
+          <primitive object={characterScene} scale={0.6} position={[0, -0.8, 0]} />
+        </RigidBody>
+
+        <mesh 
+          ref={shadowRef} 
+          rotation-x={-Math.PI / 2} 
+          position-y={0.02}
+          visible={false}
+        >
+          <planeGeometry args={[0.8, 0.8]} />
+          <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
+        </mesh>
       </group>
-
-      {pivot && <PointerLockControls camera={pivot} selector="#root" />}
-
-      <RigidBody 
-        ref={rigidBodyRef} 
-        colliders={false} 
-        type="dynamic" 
-        position={[0, 5, 0]} 
-        enabledRotations={[false, true, false]} 
-        lockRotations
-      >
-        <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-        <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
-        <primitive object={characterScene} scale={0.6} position={[0, -0.8, 0]} />
-      </RigidBody>
-
-      <mesh 
-        ref={shadowRef} 
-        rotation-x={-Math.PI / 2} 
-        position-y={0.02}
-        visible={false}
-      >
-        <planeGeometry args={[0.8, 0.8]} />
-        <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
-      </mesh>
     </>
   )
 }
