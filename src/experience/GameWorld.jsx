@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { RigidBody } from '@react-three/rapier'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { Sparkles } from '@react-three/drei'
+import { Sparkles, Stats, PerformanceMonitor } from '@react-three/drei'
 import RoleManager from './RoleManager'
 import Environment from './Environment'
 
@@ -17,13 +18,14 @@ import Environment from './Environment'
  * - Hunter position synced to Operator view
  */
 export default function GameWorld() {
+  const [lowQuality, setLowQuality] = useState(false)
+  
   // Get roles from Playroom state
   const [roles] = useMultiplayerState('roles', { hunter: null, operator: null })
   const player = myPlayer()
   const players = usePlayersList()
   
   // Determine this player's role
-  const isHunter = roles?.hunter === player?.id
   const isOperator = roles?.operator === player?.id
   
   // Get Hunter's synced position for Operator view
@@ -32,11 +34,16 @@ export default function GameWorld() {
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.6} />
+      {/* Performance Monitoring */}
+      <Stats />
+      <PerformanceMonitor onDecline={() => setLowQuality(true)} />
+
+      {/* Lighting - Dark Night Atmosphere */}
+      <ambientLight intensity={0.2} />
       <directionalLight
         position={[10, 20, 10]}
         intensity={1.5}
+        color="#1a1a2e"
         castShadow
         shadow-bias={-0.0004}
         shadow-mapSize={[2048, 2048]}
@@ -45,9 +52,6 @@ export default function GameWorld() {
         shadow-camera-top={50}
         shadow-camera-bottom={-50}
       />
-      
-      {/* Center fill light to prevent pitch black areas */}
-      <pointLight position={[0, 10, 0]} intensity={2} color="#ffffff" distance={30} />
       
       {/* Spooky accent lighting */}
       <pointLight position={[5, 5, 5]} intensity={0.8} color="#FF6B35" />
@@ -87,12 +91,14 @@ export default function GameWorld() {
       )}
 
       {/* Floating Embers */}
-      <Sparkles count={100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />
+      <Sparkles count={lowQuality ? 50 : 100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />
 
       {/* Post-Processing for Glow */}
-      <EffectComposer>
-        <Bloom luminanceThreshold={1} intensity={1.5} />
-      </EffectComposer>
+      {!lowQuality && (
+        <EffectComposer>
+          <Bloom luminanceThreshold={1} intensity={1.5} />
+        </EffectComposer>
+      )}
 
       {/* Role-based view management */}
       <RoleManager roles={roles} playerId={player?.id} />

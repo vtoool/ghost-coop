@@ -88,8 +88,8 @@ function MapTile({ name, position, texture }) {
         <pointLight
           position={[lanternPosition.x, lanternPosition.y + 0.5, lanternPosition.z]}
           color="#ffaa44"
-          intensity={5}
-          distance={10}
+          intensity={2}
+          distance={8}
           decay={2}
         />
       )}

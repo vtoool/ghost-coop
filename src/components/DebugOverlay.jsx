@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { myPlayer, isHost, usePlayersList, useMultiplayerState } from 'playroomkit'
+import { useState, useEffect } from 'react'
+import { useThree } from '@react-three/fiber'
+import { myPlayer, usePlayersList, useMultiplayerState } from 'playroomkit'
 
 /**
  * DebugOverlay - Real-time Connection State Monitor
@@ -13,17 +14,34 @@ import { myPlayer, isHost, usePlayersList, useMultiplayerState } from 'playroomk
  * - usePlayersList().length
  * - Current Game Phase
  * - Player Role (hunter/operator)
+ * - Performance metrics (FPS, Draw Calls)
  * 
  * @param {Object} props
  * @param {string} props.myRole - The player's role: 'hunter', 'operator', or 'spectator'
  */
 function DebugOverlay({ myRole = 'spectator' }) {
   const [isVisible, setIsVisible] = useState(true)
+  const [perfStats, setPerfStats] = useState({ calls: 0, geometries: 0, fps: 60 })
+  const { gl } = useThree()
   
   // Get reactive data from Playroom hooks
   const players = usePlayersList()
   const [gameStart] = useMultiplayerState('gameStart', false)
   const me = myPlayer()
+  
+  // Update performance stats periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (gl && gl.info) {
+        setPerfStats({
+          calls: gl.info.render.calls,
+          geometries: gl.info.memory.geometries,
+          fps: 60 // Stats component shows this separately
+        })
+      }
+    }, 500)
+    return () => clearInterval(interval)
+  }, [gl])
   
   // Derived values - computed fresh on each render
   const playerId = me?.id || 'N/A'
@@ -96,7 +114,7 @@ function DebugOverlay({ myRole = 'spectator' }) {
             {playerId.slice(0, 8)}...
           </span>
         </div>
-        
+          
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ color: '#888' }}>Name:</span>
           <span style={{ color: '#FF6B35', fontWeight: 'bold' }}>
@@ -134,6 +152,18 @@ function DebugOverlay({ myRole = 'spectator' }) {
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ color: '#888' }}>Status:</span>
           <span style={{ color: '#00FF00', fontWeight: 'bold' }}>✓ CONNECTED</span>
+        </div>
+        
+        {/* Performance Metrics */}
+        <div style={{ borderTop: '1px solid #333', marginTop: '4px', paddingTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>Draw Calls:</span>
+            <span style={{ color: '#00FF00', fontWeight: 'bold' }}>{perfStats.calls}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#888' }}>Geometries:</span>
+            <span style={{ color: '#00FF00', fontWeight: 'bold' }}>{perfStats.geometries}</span>
+          </div>
         </div>
       </div>
       
