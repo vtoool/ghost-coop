@@ -133,10 +133,10 @@ export default function HunterController() {
         {/* Hero Light - Softened for smooth fog falloff */}
         <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
         
-        {/* Soft Blurred Shadow */}
-        <mesh rotation-x={-Math.PI / 2} position-y={-4.98}>
+        {/* Soft Blurred Shadow - positioned at feet level */}
+        <mesh rotation-x={-Math.PI / 2} position-y={-0.98}>
           <planeGeometry args={[0.8, 0.8]} />
-          <meshBasicMaterial map={shadowTexture} transparent opacity={0.6} depthWrite={false} />
+          <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
         </mesh>
         
         <primitive object={scene} scale={0.6} position={[0, -0.8, 0]} />
