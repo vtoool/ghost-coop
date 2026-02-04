@@ -89,18 +89,6 @@ function MapTile({ name, position, texture }) {
       <RigidBody type="fixed" colliders="hull" position={position}>
         <primitive object={clone} />
       </RigidBody>
-      
-      {/* Performance Lantern - Glow without shadows */}
-      {isLantern && lanternPosition && (
-        <pointLight
-          position={[lanternPosition.x, lanternPosition.y + 0.5, lanternPosition.z]}
-          color="#ffaa44"
-          intensity={15}
-          distance={10}
-          decay={2}
-          castShadow={false}
-        />
-      )}
     </group>
   )
 }

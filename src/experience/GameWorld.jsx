@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { RigidBody } from '@react-three/rapier'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
@@ -19,6 +20,7 @@ import Environment from './Environment'
  */
 export default function GameWorld() {
   const [lowQuality, setLowQuality] = useState(false)
+  const playerLightRef = useRef()
   
   // Get roles from Playroom state
   const [roles] = useMultiplayerState('roles', { hunter: null, operator: null })
@@ -32,6 +34,16 @@ export default function GameWorld() {
   const hunterPlayer = players.find(p => p.id === roles?.hunter)
   const hunterPos = hunterPlayer?.getState('pos') || { x: 0, y: 2, z: 0 }
 
+  // Update player aura light position every frame
+  useFrame(() => {
+    if (playerLightRef.current && hunterPlayer) {
+      const pos = hunterPlayer.getState('pos')
+      if (pos) {
+        playerLightRef.current.position.set(pos.x, pos.y + 2, pos.z)
+      }
+    }
+  })
+
   return (
     <>
       {/* Performance Monitoring - Stats positioned in top-left corner */}
@@ -41,16 +53,20 @@ export default function GameWorld() {
       {/* Background Color for Mist Effect */}
       <color attach="background" args={['#050505']} />
 
-      {/* Lighting - Dark Night Atmosphere - Low Global Light for Lantern Contrast */}
-      <ambientLight intensity={0.2} />
+      {/* Lighting - Deep Blue Moonlight - No Hotspot */}
+      <ambientLight intensity={0.1} />
       <directionalLight
         position={[10, 20, 10]}
-        intensity={0.2}
-        color="#1a1a2e"
+        intensity={0.05}
+        color="#0a0a1a"
       />
+      <object3D position={[100, -100, 100]} />
       
       {/* Fog */}
       <fog attach="fog" args={['#050505', 2, 35]} />
+
+      {/* Player Aura - Single performant light that follows the player */}
+      <pointLight ref={playerLightRef} color="#ffaa44" intensity={10} distance={12} decay={2} />
 
       {/* Full Graveyard Environment */}
       <Environment />

@@ -124,9 +124,9 @@ export default function HunterController() {
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
         
-        {/* Drop Shadow - Performance-friendly fake shadow */}
-        <mesh rotation-x={-Math.PI / 2} position-y={-0.9}>
-          <circleGeometry args={[0.5, 32]} />
+        {/* Blob Shadow - Performance-friendly fake shadow */}
+        <mesh rotation-x={-Math.PI / 2} position-y={-0.95}>
+          <circleGeometry args={[0.6, 32]} />
           <meshBasicMaterial color="black" transparent opacity={0.4} />
         </mesh>
         
