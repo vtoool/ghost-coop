@@ -10,7 +10,6 @@ export function usePerformanceLogger({ enabled = true, interval = 2000 } = {}) {
   useEffect(() => {
     if (!enabled) return
 
-    const now = performance.now()
     console.log('[PerformanceLogger] Initialized')
     console.log(`[PerformanceLogger] Active lights: ${countActiveLights(scene)}`)
     console.log(`[PerformanceLogger] Emissive meshes: ${countEmissiveMeshes(scene)}`)
@@ -62,11 +61,29 @@ function countActiveLights(object) {
 
 function countEmissiveMeshes(object) {
   let count = 0
+  const emissiveMeshes = []
   object.traverse((child) => {
-    if (child.isMesh && child.material && child.material.emissiveIntensity > 0) {
-      count++
+    if (child.isMesh && child.material) {
+      const emissiveIntensity = child.material.emissiveIntensity ?? 0
+      if (emissiveIntensity > 0) {
+        count++
+        emissiveMeshes.push({
+          name: child.name || 'unnamed',
+          parentName: child.parent?.name || 'unknown',
+          intensity: emissiveIntensity
+        })
+      }
     }
   })
+  console.log('[Emissive Audit] Total:', count, 'meshes with emissive')
+  emissiveMeshes.forEach((mesh, i) => {
+    if (i < 20) {
+      console.log(`  [${i + 1}] ${mesh.parentName}/${mesh.name}: intensity=${mesh.intensity}`)
+    }
+  })
+  if (emissiveMeshes.length > 20) {
+    console.log(`  ... and ${emissiveMeshes.length - 20} more`)
+  }
   return count
 }
 

@@ -29,7 +29,7 @@ function getGlowTexture() {
 function GlowSprite({ position }) {
   const texture = useMemo(() => getGlowTexture(), [])
   return (
-    <sprite position={position} scale={[1.5, 1.5, 1]}>
+    <sprite position={position} scale={[0.8, 0.8, 1]}>
       <spriteMaterial
         map={texture}
         transparent
@@ -69,7 +69,7 @@ function MapTile({ name, position, texture, onLanternDetected }) {
       if (child.isMesh && !detectedRef.current) {
         const glowPos = [
           position[0],
-          position[1] + 0.5,
+          position[1] + 0.3,
           position[2]
         ]
         detectedRef.current = true
@@ -89,6 +89,8 @@ function MapTile({ name, position, texture, onLanternDetected }) {
       if (child.isMesh) {
         child.material = child.material.clone()
         child.material.map = texture
+        child.material.emissive = new THREE.Color(0x000000)
+        child.material.emissiveIntensity = 0
         child.castShadow = false
         child.receiveShadow = false
       }

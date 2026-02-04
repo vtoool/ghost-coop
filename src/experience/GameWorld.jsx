@@ -30,11 +30,11 @@ export default function GameWorld() {
   const players = usePlayersList()
   
   // Determine this player's role
-  const isOperator = roles?.operator === player?.id
+  const _isOperator = roles?.operator === player?.id
   
-  // Get Hunter's synced position for Operator view
-  const hunterPlayer = players.find(p => p.id === roles?.hunter)
-  const hunterPos = hunterPlayer?.getState('pos') || { x: 0, y: 2, z: 0 }
+  // Get Hunter's synced position for Operator view (reserved for Phase 3)
+  const _hunterPlayer = players.find(p => p.id === roles?.hunter)
+  const _hunterPos = _hunterPlayer?.getState('pos') || { x: 0, y: 2, z: 0 }
 
   return (
     <>
@@ -52,10 +52,11 @@ export default function GameWorld() {
         smoothin={0.1}
       />
 
-      {/* Background Color for Mist Effect */}
-      <color attach="background" args={['#050505']} />
+      {/* Background Color for Mist Effect - Deep Midnight Blue */}
+      <color attach="background" args={['#0a0a12']} />
 
-      {/* Lighting - Deep Blue Moonlight - No Hotspot */}
+      {/* Lighting - Deep Blue Moonlight with Hemisphere Base */}
+      <hemisphereLight skyColor="#2a2a35" groundColor="#050505" intensity={0.5} />
       <ambientLight intensity={0.1} />
       <directionalLight
         position={[10, 20, 10]}
@@ -64,8 +65,8 @@ export default function GameWorld() {
       />
       <object3D position={[100, -100, 100]} />
       
-      {/* Fog */}
-      <fogExp2 attach="fog" args={['#050505', 0.045]} />
+      {/* Fog - Matches background for infinite depth illusion */}
+      <fogExp2 attach="fog" args={['#0a0a12', 0.035]} />
 
       {/* Player Aura - Single performant light that follows the player (now handled by HunterController) */}
       {/* <pointLight ref={playerLightRef} color="#ffaa44" intensity={10} distance={12} decay={2} /> */}

@@ -13,12 +13,17 @@ export default function HunterController() {
   const { scene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, scene)
 
-  // Texture Cleanup
+  // Texture & Material Cleanup - Remove emissive for proper lighting
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = false
         child.receiveShadow = false
+        // Remove emissive to let hero light do the work
+        if (child.material) {
+          child.material.emissive = new THREE.Color(0x000000)
+          child.material.emissiveIntensity = 0
+        }
       }
     })
   }, [scene])
@@ -51,12 +56,10 @@ export default function HunterController() {
     const { forward, backward, left, right } = getKeyboardControls()
     
     let joystick = { x: 0, y: 0, isActive: false }
-    try {
-      if (player.getJoystick) {
-        const j = player.getJoystick()
-        if (j) joystick = j
-      }
-    } catch (e) {}
+    if (player.getJoystick) {
+      const j = player.getJoystick()
+      if (j) joystick = j
+    }
 
     const moveDir = new THREE.Vector3()
     
@@ -124,8 +127,8 @@ export default function HunterController() {
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
         
-        {/* Hero Light - Optimized for performance */}
-        <pointLight color="#ffaa44" intensity={12} distance={10} decay={2} castShadow={false} position={[0, 0.5, 0]} />
+        {/* Hero Light - Softened for smooth fog falloff */}
+        <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
         
         {/* Blob Shadow - Performance-friendly fake shadow */}
         <mesh rotation-x={-Math.PI / 2} position-y={-0.95}>
