@@ -40,7 +40,7 @@ export function MapRenderer() {
 
   return (
     <group>
-      <mesh position={[0, -0.5, 0]} receiveShadow>
+      <mesh position={[0, -0.5, 0]}>
         <boxGeometry args={[mapWidth, 1, mapHeight]} />
         <meshStandardMaterial color="#2d4a2d" roughness={0.8} metalness={0} />
       </mesh>
@@ -65,8 +65,6 @@ function MapTile({ name, position, texture }) {
       if (child.isMesh) {
         child.material = child.material.clone()
         child.material.map = texture
-        child.castShadow = true
-        child.receiveShadow = true
       }
       // Find lantern position for light pooling
       if (name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) {
@@ -78,7 +76,7 @@ function MapTile({ name, position, texture }) {
           // Add emissive glow to lantern materials
           if (child.material) {
             child.material.emissive = new THREE.Color('#ffaa44')
-            child.material.emissiveIntensity = 2
+            child.material.emissiveIntensity = 3
           }
         }
       }
@@ -92,15 +90,15 @@ function MapTile({ name, position, texture }) {
         <primitive object={clone} />
       </RigidBody>
       
-      {/* Localized Warmth - Lantern Pool of Light */}
+      {/* Performance Lantern - Glow without shadows */}
       {isLantern && lanternPosition && (
         <pointLight
           position={[lanternPosition.x, lanternPosition.y + 0.5, lanternPosition.z]}
           color="#ffaa44"
-          intensity={20}
-          distance={15}
+          intensity={15}
+          distance={10}
           decay={2}
-          castShadow
+          castShadow={false}
         />
       )}
     </group>

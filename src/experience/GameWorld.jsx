@@ -42,22 +42,15 @@ export default function GameWorld() {
       <color attach="background" args={['#050505']} />
 
       {/* Lighting - Dark Night Atmosphere - Low Global Light for Lantern Contrast */}
-      <ambientLight intensity={0.05} />
+      <ambientLight intensity={0.2} />
       <directionalLight
         position={[10, 20, 10]}
-        intensity={0.1}
+        intensity={0.2}
         color="#1a1a2e"
-        castShadow
-        shadow-bias={-0.0004}
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-50}
-        shadow-camera-right={50}
-        shadow-camera-top={50}
-        shadow-camera-bottom={-50}
       />
       
-      {/* Mist Fog */}
-      <fogExp2 attach="fog" args={['#050505', 0.04]} />
+      {/* Fog */}
+      <fog attach="fog" args={['#050505', 2, 35]} />
 
       {/* Full Graveyard Environment */}
       <Environment />

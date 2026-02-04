@@ -13,12 +13,12 @@ export default function HunterController() {
   const { scene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, scene)
 
-  // Texture Cleanup: Only enable shadows. Keep natural materials.
+  // Texture Cleanup
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
-        child.castShadow = true
-        child.receiveShadow = true
+        child.castShadow = false
+        child.receiveShadow = false
       }
     })
   }, [scene])
@@ -123,6 +123,13 @@ export default function HunterController() {
         lockRotations
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
+        
+        {/* Drop Shadow - Performance-friendly fake shadow */}
+        <mesh rotation-x={-Math.PI / 2} position-y={-0.9}>
+          <circleGeometry args={[0.5, 32]} />
+          <meshBasicMaterial color="black" transparent opacity={0.4} />
+        </mesh>
+        
         <primitive object={scene} scale={0.6} position={[0, -0.8, 0]} />
       </RigidBody>
     </>
