@@ -2,6 +2,7 @@ import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { RigidBody } from '@react-three/rapier'
 import RoleManager from './RoleManager'
 import Environment from './Environment'
+import { AssetDebugger } from './AssetDebugger'
 
 /**
  * GameWorld - The 3D Scene
@@ -49,6 +50,9 @@ export default function GameWorld() {
 
       {/* Full Graveyard Environment */}
       <Environment />
+
+      {/* TEMP: Asset Debugger for block-grass-square.glb */}
+      <AssetDebugger />
 
       {/* Ghost Entity - Everyone sees this */}
       <RigidBody type="kinematicPosition" position={[0, 3, 0]}>
