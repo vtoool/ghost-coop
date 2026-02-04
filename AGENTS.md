@@ -18,8 +18,8 @@
 **Phase 1: COMPLETE** ✅  
 Lobby & Connection Architecture — Foundation deployed and stable.
 
-**Phase 2: PENDING** ⏳  
-3D Game World Integration (R3F + Drei).
+**Phase 2: IN PROGRESS** 🔧  
+3D Game World Integration (R3F + Drei) - Auto-tiling map with rounded edges and square centers.
 
 ---
 
@@ -148,13 +148,14 @@ vercel --prod
 
 ## 🔒 Non-Negotiables
 
-1. **Network Gate Pattern** — `insertCoin()` in `main.jsx` ONLY, poll for `myPlayer().id` before `createRoot()`
-2. **Dumb UI Components** — App/Lobby assume network ready, no defensive null checks
-3. **Universal Design** — Never "Desktop" or "Mobile", always "Host" and "Join"
-4. **Mobile First** — `touch-action: none` + `user-select: none` mandatory
-5. **State Discipline** — No duplicating Playroom state into React state
-6. **Visual Testing** — Playwright tests required for all UI changes
-7. **Continuous Self-Improvement** — ALWAYS upgrade capabilities and skills proactively
+1. **Always Commit & Deploy** — After every code change, commit to GitHub and deploy to Vercel. Verify the build succeeds. Never leave changes uncommitted or untested in production.
+2. **Network Gate Pattern** — `insertCoin()` in `main.jsx` ONLY, poll for `myPlayer().id` before `createRoot()`
+3. **Dumb UI Components** — App/Lobby assume network ready, no defensive null checks
+4. **Universal Design** — Never "Desktop" or "Mobile", always "Host" and "Join"
+5. **Mobile First** — `touch-action: none` + `user-select: none` mandatory
+6. **State Discipline** — No duplicating Playroom state into React state
+7. **Visual Testing** — Playwright tests required for all UI changes
+8. **Continuous Self-Improvement** — ALWAYS upgrade capabilities and skills proactively
 
 ---
 
@@ -202,5 +203,5 @@ vercel --prod
 
 ---
 
-*Last Updated: 2026-02-03*  
+*Last Updated: 2026-02-04*  
 *Status: Phase 1 STABLE (Network Gate Pattern Implemented), Ready for Phase 2*
