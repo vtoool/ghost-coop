@@ -32,7 +32,7 @@ export function MapRenderer() {
   const squareClone = useMemo(() => {
     const group = new THREE.Group()
 
-    const dirtGeo = new THREE.BoxGeometry(2, 1, 2)
+    const dirtGeo = new THREE.BoxGeometry(2.05, 1, 2.05)
     const dirtMat = new THREE.MeshStandardMaterial({
       color: '#6d4e3d',
       roughness: 1,
@@ -55,6 +55,7 @@ export function MapRenderer() {
       }
     })
     grassMesh.position.set(0, 1.0, 0)
+    grassMesh.scale.set(1.05, 1, 1.05)
     group.add(grassMesh)
 
     return group
