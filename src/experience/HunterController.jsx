@@ -11,7 +11,7 @@ export default function HunterController() {
   const shadowRef = useRef(null)
   const [pivot, setPivot] = useState(null)
   const [currentAction, setCurrentAction] = useState("idle")
-  const { scene } = useThree()
+  const { scene, camera } = useThree()
   const raycaster = useRef(new THREE.Raycaster())
   const downVector = useRef(new THREE.Vector3(0, -1, 0))
   const groundDistance = useRef(Infinity)
@@ -114,11 +114,13 @@ export default function HunterController() {
     if (shadowRef.current) {
       const playerPos = new THREE.Vector3(pos.x, pos.y, pos.z)
       raycaster.current.set(playerPos, downVector.current)
+      raycaster.current.camera = camera
       
       const intersects = raycaster.current.intersectObjects(scene.children, true)
       
       const validHit = intersects.find(hit => {
         const obj = hit.object
+        if (obj.type === 'Sprite') return false
         if (shadowRef.current && (obj === shadowRef.current || shadowRef.current.children.includes(obj))) {
           return false
         }
