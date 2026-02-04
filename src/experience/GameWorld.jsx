@@ -1,5 +1,7 @@
 import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { RigidBody } from '@react-three/rapier'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { Sparkles } from '@react-three/drei'
 import RoleManager from './RoleManager'
 import Environment from './Environment'
 
@@ -38,6 +40,10 @@ export default function GameWorld() {
         castShadow
         shadow-bias={-0.0004}
         shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-50}
+        shadow-camera-right={50}
+        shadow-camera-top={50}
+        shadow-camera-bottom={-50}
       />
       
       {/* Center fill light to prevent pitch black areas */}
@@ -79,6 +85,14 @@ export default function GameWorld() {
           <pointLight intensity={1} color="#FF6B35" distance={5} />
         </group>
       )}
+
+      {/* Floating Embers */}
+      <Sparkles count={100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />
+
+      {/* Post-Processing for Glow */}
+      <EffectComposer>
+        <Bloom luminanceThreshold={1} intensity={1.5} />
+      </EffectComposer>
 
       {/* Role-based view management */}
       <RoleManager roles={roles} playerId={player?.id} />

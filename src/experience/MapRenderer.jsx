@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
@@ -56,6 +56,8 @@ export function MapRenderer() {
 
 function MapTile({ name, position, texture }) {
   const { scene } = useGLTF(`/models/environment/${name}.glb`)
+  const [lanternPosition, setLanternPosition] = useState(null)
+  
   const clone = useMemo(() => {
     const c = scene.clone()
     c.traverse((child) => {
@@ -65,13 +67,32 @@ function MapTile({ name, position, texture }) {
         child.castShadow = true
         child.receiveShadow = true
       }
+      // Find lantern position for light pooling
+      if ((name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) && child.isMesh) {
+        const worldPos = new THREE.Vector3()
+        child.getWorldPosition(worldPos)
+        setLanternPosition(worldPos)
+      }
     })
     return c
-  }, [scene, texture])
+  }, [scene, texture, name])
 
   return (
-    <RigidBody type="fixed" colliders="hull" position={position}>
-      <primitive object={clone} />
-    </RigidBody>
+    <group>
+      <RigidBody type="fixed" colliders="hull" position={position}>
+        <primitive object={clone} />
+      </RigidBody>
+      
+      {/* Localized Warmth - Lantern Pool of Light */}
+      {lanternPosition && (
+        <pointLight
+          position={[lanternPosition.x, lanternPosition.y + 0.5, lanternPosition.z]}
+          color="#ffaa44"
+          intensity={5}
+          distance={10}
+          decay={2}
+        />
+      )}
+    </group>
   )
 }
