@@ -38,7 +38,7 @@ export function MapRenderer() {
       roughness: 1,
     })
     const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
-    dirtMesh.position.set(0, 0.45, 0)
+    dirtMesh.position.set(0, 0.40, 0)
     dirtMesh.castShadow = true
     dirtMesh.receiveShadow = true
     group.add(dirtMesh)
