@@ -33,14 +33,16 @@ export function MapRenderer() {
     const clone = squareScene.clone()
     clone.traverse((child) => {
       if (child.isMesh) {
-        child.material = child.material ? child.material.clone() : new THREE.MeshStandardMaterial()
-        child.material.map = platformerTx
+        child.material = new THREE.MeshStandardMaterial({
+          color: '#63a73c',
+          roughness: 0.8,
+        })
         child.castShadow = true
         child.receiveShadow = true
       }
     })
     return clone
-  }, [squareScene, platformerTx])
+  }, [squareScene])
 
   const gridSize = 2
   const width = level1[0].length
