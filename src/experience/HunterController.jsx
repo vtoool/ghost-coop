@@ -43,7 +43,7 @@ export default function HunterController() {
 
   const [, getKeyboardControls] = useKeyboardControls()
   const moveSpeed = 6
-  const jumpVelocity = 8
+  const jumpVelocity = 5
 
   useFrame(() => {
     if (!rigidBodyRef.current || !pivot || !playerGroupRef.current) return
@@ -84,26 +84,41 @@ export default function HunterController() {
 
     const vel = rigidBodyRef.current.linvel()
 
-    let targetY = vel.y
+    const rayOrigin = new THREE.Vector3(pos.x, pos.y + 0.6, pos.z)
+    raycaster.current.set(rayOrigin, downVector.current)
+    raycaster.current.camera = camera
+    raycaster.current.near = 0.2
 
-    if (jump && groundDistance.current < 0.5 && groundDistance.current > 0.1) {
-      targetY = jumpVelocity
+    const hits = raycaster.current.intersectObjects(scene.children, true)
+    
+    const validHit = hits.find(hit => hit.object.type !== 'Sprite' && hit.distance > 0.2)
+
+    if (validHit && validHit.distance < 10) {
+      groundDistance.current = validHit.distance
+    } else {
+      groundDistance.current = Infinity
+    }
+
+    const isGrounded = groundDistance.current <= 0.7
+
+    if (jump && isGrounded) {
+      rigidBodyRef.current.setLinvel({ x: vel.x, y: jumpVelocity, z: vel.z }, true)
     }
 
     const isMoving = moveDir.lengthSq() > 0.001
     if (isMoving) {
       moveDir.normalize().multiplyScalar(moveSpeed)
-      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: targetY, z: moveDir.z }, true)
+      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: vel.y, z: moveDir.z }, true)
       const angle = Math.atan2(moveDir.x, moveDir.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
-      rigidBodyRef.current.setLinvel({ x: 0, y: targetY, z: 0 }, true)
+      rigidBodyRef.current.setLinvel({ x: 0, y: vel.y, z: 0 }, true)
     }
 
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
 
     let targetAnim = "idle"
-    if (groundDistance.current > 0.6) {
+    if (!isGrounded) {
       targetAnim = vel.y > 0 ? "jump" : "fall"
     } else {
       targetAnim = moveDir.lengthSq() > 0.001 ? "sprint" : "idle"
@@ -113,33 +128,11 @@ export default function HunterController() {
     }
 
     if (shadowRef.current) {
-      const playerPos = new THREE.Vector3(pos.x, pos.y, pos.z)
-      raycaster.current.set(playerPos, downVector.current)
-      raycaster.current.camera = camera
-      
-      const intersects = raycaster.current.intersectObjects(scene.children, true)
-      
-      const validHit = intersects.find(hit => {
-        const obj = hit.object
-        
-        if (obj.type === 'Sprite') return false
-        if (hit.distance < 0.3) return false
-        
-        let currentObj = obj
-        while (currentObj) {
-          if (currentObj === playerGroupRef.current) return false
-          currentObj = currentObj.parent
-        }
-        
-        return true
-      })
-
-      if (validHit && validHit.distance < 10) {
-        groundDistance.current = validHit.distance
-        const dist = validHit.distance
+      if (validHit && isGrounded) {
         shadowRef.current.visible = true
-        shadowRef.current.position.set(playerPos.x, validHit.point.y + 0.02, playerPos.z)
+        shadowRef.current.position.set(validHit.point.x, validHit.point.y + 0.02, validHit.point.z)
         
+        const dist = validHit.distance
         const scale = Math.max(0.3, 1 - (dist * 0.08))
         shadowRef.current.scale.setScalar(scale)
         
@@ -148,7 +141,6 @@ export default function HunterController() {
           shadowRef.current.material.opacity = opacity
         }
       } else {
-        groundDistance.current = Infinity
         shadowRef.current.visible = false
       }
     }
