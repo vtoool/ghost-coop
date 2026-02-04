@@ -35,12 +35,24 @@ export function MapRenderer() {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
           color: '#63a73c',
-          roughness: 0.8,
+          roughness: 1,
         })
         child.castShadow = true
         child.receiveShadow = true
       }
     })
+
+    const dirtGeo = new THREE.BoxGeometry(2, 1, 2)
+    const dirtMat = new THREE.MeshStandardMaterial({
+      color: '#6d4e3d',
+      roughness: 1,
+    })
+    const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
+    dirtMesh.position.set(0, -0.5, 0)
+    dirtMesh.castShadow = true
+    dirtMesh.receiveShadow = true
+    clone.add(dirtMesh)
+
     return clone
   }, [squareScene])
 
