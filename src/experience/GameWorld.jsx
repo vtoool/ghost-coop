@@ -34,8 +34,8 @@ export default function GameWorld() {
 
   return (
     <>
-      {/* Performance Monitoring */}
-      <Stats />
+      {/* Performance Monitoring - Stats positioned in top-left corner */}
+      <Stats className="stats" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 9999 }} />
       <PerformanceMonitor onDecline={() => setLowQuality(true)} />
 
       {/* Background Color for Mist Effect */}
@@ -66,8 +66,8 @@ export default function GameWorld() {
       {/* Full Graveyard Environment */}
       <Environment />
 
-      {/* Ghost Entity - Everyone sees this */}
-      <RigidBody type="kinematicPosition" position={[0, 3, 0]}>
+      {/* Ghost Entity - Hidden (Ghost Moon placeholder removed) */}
+      {/* <RigidBody type="kinematicPosition" position={[0, 3, 0]}>
         <mesh castShadow>
           <sphereGeometry args={[0.8, 32, 32]} />
           <meshStandardMaterial 
@@ -78,23 +78,21 @@ export default function GameWorld() {
             opacity={0.9}
           />
         </mesh>
-      </RigidBody>
+      </RigidBody> */}
       
-      {/* Ghost glow effect */}
-      <pointLight position={[0, 3, 0]} intensity={2} color="#00F0FF" distance={10} />
+      {/* Ghost glow effect - Hidden */}
+      {/* <pointLight position={[0, 3, 0]} intensity={2} color="#00F0FF" distance={10} /> */}
 
-      {/* Hunter position marker for Operator view */}
-      {isOperator && hunterPlayer && (
+      {/* Hunter position marker for Operator view - Hidden (Orange Circle placeholder removed) */}
+      {/* {isOperator && hunterPlayer && (
         <group position={[hunterPos.x, hunterPos.y, hunterPos.z]}>
-          {/* Hunter marker on Operator's map */}
           <mesh position={[0, 0.5, 0]}>
             <cylinderGeometry args={[0.3, 0.3, 0.1, 16]} />
             <meshStandardMaterial color="#FF6B35" emissive="#FF6B35" emissiveIntensity={0.5} />
           </mesh>
-          {/* Label indicator */}
           <pointLight intensity={1} color="#FF6B35" distance={5} />
         </group>
-      )}
+      )} */}
 
       {/* Floating Embers */}
       <Sparkles count={lowQuality ? 50 : 100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />
