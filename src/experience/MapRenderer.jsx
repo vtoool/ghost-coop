@@ -4,7 +4,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
 
-export default function MapRenderer() {
+export function MapRenderer() {
   const platformerTx = useTexture('/models/environment/Textures/colormap_platformer.png')
   platformerTx.colorSpace = THREE.SRGBColorSpace
   platformerTx.flipY = false
@@ -13,10 +13,11 @@ export default function MapRenderer() {
   graveyardTx.colorSpace = THREE.SRGBColorSpace
   graveyardTx.flipY = false
 
-  const { scene: floorScene } = useGLTF('/models/environment/block-grass.glb')
+  const { scene: roundedScene } = useGLTF('/models/environment/block-grass.glb')
+  const { scene: squareScene } = useGLTF('/models/environment/block-grass-square.glb')
 
-  const floorClone = useMemo(() => {
-    const clone = floorScene.clone()
+  const roundedClone = useMemo(() => {
+    const clone = roundedScene.clone()
     clone.traverse((child) => {
       if (child.isMesh) {
         child.material = child.material.clone()
@@ -26,7 +27,20 @@ export default function MapRenderer() {
       }
     })
     return clone
-  }, [floorScene, platformerTx])
+  }, [roundedScene, platformerTx])
+
+  const squareClone = useMemo(() => {
+    const clone = squareScene.clone()
+    clone.traverse((child) => {
+      if (child.isMesh) {
+        child.material = child.material ? child.material.clone() : new THREE.MeshStandardMaterial()
+        child.material.map = platformerTx
+        child.castShadow = true
+        child.receiveShadow = true
+      }
+    })
+    return clone
+  }, [squareScene, platformerTx])
 
   const gridSize = 2
   const width = level1[0].length
@@ -37,43 +51,33 @@ export default function MapRenderer() {
   const floorTiles = []
   for (let z = 0; z < height; z++) {
     for (let x = 0; x < width; x++) {
+      const isEdge = x === 0 || x === width - 1 || z === 0 || z === height - 1
+      const model = isEdge ? roundedClone : squareClone
+
       floorTiles.push(
-        <primitive 
+        <primitive
           key={`floor-${x}-${z}`}
-          object={floorClone.clone()}
-          position={[x * gridSize - offsetX, -1.01, z * gridSize - offsetZ]}
+          object={model.clone()}
+          position={[x * gridSize - offsetX, -1, z * gridSize - offsetZ]}
         />
       )
     }
   }
 
-  const props = []
-  let index = 0
-  for (let z = 0; z < height; z++) {
-    const row = level1[z]
-    for (let x = 0; x < width; x++) {
-      const char = row[x]
-      if (char === '.' || char === ' ') continue
-      
+  const props = level1.flatMap((row, z) =>
+    row.split('').map((char, x) => {
       const name = mapLegend[char]
-      if (!name) continue
-      
-      const position = [
-        x * gridSize - offsetX,
-        0,
-        z * gridSize - offsetZ
-      ]
-      
-      props.push(
-        <MapTile 
-          key={`prop-${index++}`}
+      if (!name) return null
+      return (
+        <MapTile
+          key={`prop-${x}-${z}`}
           name={name}
-          position={position}
+          position={[x * gridSize - offsetX, 0, z * gridSize - offsetZ]}
           texture={graveyardTx}
         />
       )
-    }
-  }
+    })
+  )
 
   return (
     <group>
