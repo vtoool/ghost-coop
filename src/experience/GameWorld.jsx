@@ -104,12 +104,12 @@ export default function GameWorld() {
       {/* Floating Embers */}
       <Sparkles count={lowQuality ? 50 : 100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />
 
-      {/* Post-Processing for Glow - Only reduces bloom on low quality */}
-      {!lowQuality && (
+      {/* Post-Processing for Glow - TEMPORARILY DISABLED to verify glow sprites */}
+      {/* {!lowQuality && (
         <EffectComposer>
           <Bloom luminanceThreshold={1} intensity={0.8} />
         </EffectComposer>
-      )}
+      )} */}
 
       {/* Role-based view management */}
       <RoleManager roles={roles} playerId={player?.id} />

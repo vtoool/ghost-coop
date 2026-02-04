@@ -1,8 +1,10 @@
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useRef } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
+
+const DEBUG_LANTERNS = true // Set to false to disable lantern debug logging
 
 function createGlowTexture() {
   const canvas = document.createElement('canvas')
@@ -22,6 +24,9 @@ function createGlowTexture() {
 
 function GlowSprite({ position }) {
   const glowTexture = useMemo(() => createGlowTexture(), [])
+  if (DEBUG_LANTERNS) {
+    console.log('[GlowSprite] Rendering at', position)
+  }
   return (
     <sprite position={position} scale={[2, 2, 1]}>
       <spriteMaterial
@@ -50,6 +55,18 @@ export function MapRenderer() {
   const offsetX = mapWidth / 2
   const offsetZ = mapHeight / 2
 
+  if (DEBUG_LANTERNS) {
+    console.log('[MapRenderer] Level Map Characters:')
+    level1.forEach((row, z) => {
+      row.split('').forEach((char, x) => {
+        const name = mapLegend[char]
+        if (name) {
+          console.log(`  [${x},${z}] '${char}' -> ${name}`)
+        }
+      })
+    })
+  }
+
   const props = level1.flatMap((row, z) =>
     row.split('').map((char, x) => {
       const name = mapLegend[char]
@@ -58,9 +75,14 @@ export function MapRenderer() {
       const posX = (x * gridSize) - offsetX + (gridSize / 2)
       const posZ = (z * gridSize) - offsetZ + (gridSize / 2)
 
+      if (DEBUG_LANTERNS) {
+        console.log(`[MapRenderer] Creating MapTile: ${name} at [${posX.toFixed(1)}, 0, ${posZ.toFixed(1)}]`)
+      }
+
       return (
         <MapTile
           key={`prop-${x}-${z}`}
+          char={char}
           name={name}
           position={[posX, 0, posZ]}
           texture={graveyardTx}
@@ -85,11 +107,15 @@ export function MapRenderer() {
   )
 }
 
-function MapTile({ name, position, texture }) {
+function MapTile({ char, name, position, texture }) {
   const { scene } = useGLTF(`/models/environment/${name}.glb`)
-  const [lanternPosition, setLanternPosition] = useState(null)
+  const lanternPosRef = useRef(null)
+  const isLanternRef = useRef(false)
   const [isLantern, setIsLantern] = useState(false)
+  const [lanternPosition, setLanternPosition] = useState(null)
+  const [checked, setChecked] = useState(false)
 
+  // Remove embedded lights from GLTF
   useEffect(() => {
     let lightsFound = 0
     scene.traverse((obj) => {
@@ -98,11 +124,47 @@ function MapTile({ name, position, texture }) {
         lightsFound++
       }
     })
-    if (lightsFound > 0) {
+    if (lightsFound > 0 && DEBUG_LANTERNS) {
       console.log(`[GLTF Audit] ${name}: removed ${lightsFound} embedded lights`)
     }
-  }, [scene])
+  }, [scene, name])
 
+  // Detect lanterns BEFORE clone
+  useEffect(() => {
+    if (checked) return
+    
+    let foundLantern = false
+    let foundPos = null
+
+    scene.traverse((child) => {
+      const isLanternName = name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')
+      
+      if (DEBUG_LANTERNS && child.isMesh) {
+        console.log(`[MapTile] ${name}: checking mesh "${child.name}" isLanternName=${isLanternName}`)
+      }
+
+      if (isLanternName && child.isMesh) {
+        foundLantern = true
+        child.updateWorldMatrix(true, true)
+        const worldPos = new THREE.Vector3()
+        child.getWorldPosition(worldPos)
+        foundPos = [worldPos.x, worldPos.y + 0.5, worldPos.z]
+        if (DEBUG_LANTERNS) {
+          console.log(`[MapTile] LANTERN DETECTED: ${name} at local=[${position.join(', ')}] world=[${foundPos.join(', ')}]`)
+        }
+      }
+    })
+
+    if (foundLantern) {
+      isLanternRef.current = true
+      lanternPosRef.current = foundPos
+      setIsLantern(true)
+      setLanternPosition(foundPos)
+    }
+    setChecked(true)
+  }, [scene, name, position, checked])
+
+  // Clone with material updates (NO emissive!)
   const clone = useMemo(() => {
     const c = scene.clone()
     c.traverse((child) => {
@@ -111,18 +173,15 @@ function MapTile({ name, position, texture }) {
         child.material.map = texture
         child.castShadow = false
         child.receiveShadow = false
-      }
-      if (name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) {
-        setIsLantern(true)
-        if (child.isMesh) {
-          const worldPos = new THREE.Vector3()
-          child.getWorldPosition(worldPos)
-          setLanternPosition([worldPos.x, worldPos.y + 0.5, worldPos.z])
-        }
+        // NO emissive - using glow sprites instead
       }
     })
     return c
-  }, [scene, texture, name])
+  }, [scene, texture])
+
+  if (DEBUG_LANTERNS && isLantern) {
+    console.log(`[MapTile] RENDERING: ${name} isLantern=${isLantern} position=${JSON.stringify(lanternPosition)}`)
+  }
 
   return (
     <group>
