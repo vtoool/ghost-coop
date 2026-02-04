@@ -1,4 +1,4 @@
-import MapRenderer from './MapRenderer'
+import { MapRenderer } from './MapRenderer'
 
 export default function Environment() {
   return (
