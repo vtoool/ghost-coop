@@ -124,6 +124,9 @@ export default function HunterController() {
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
         
+        {/* Hero Light - Single performant light around player */}
+        <pointLight color="#ffaa44" intensity={12} distance={15} decay={2} castShadow={false} position={[0, 0.5, 0]} />
+        
         {/* Blob Shadow - Performance-friendly fake shadow */}
         <mesh rotation-x={-Math.PI / 2} position-y={-0.95}>
           <circleGeometry args={[0.6, 32]} />

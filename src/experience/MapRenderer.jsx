@@ -56,8 +56,6 @@ export function MapRenderer() {
 
 function MapTile({ name, position, texture }) {
   const { scene } = useGLTF(`/models/environment/${name}.glb`)
-  const [lanternPosition, setLanternPosition] = useState(null)
-  const [isLantern, setIsLantern] = useState(false)
   
   const clone = useMemo(() => {
     const c = scene.clone()
@@ -66,18 +64,11 @@ function MapTile({ name, position, texture }) {
         child.material = child.material.clone()
         child.material.map = texture
       }
-      // Find lantern position for light pooling
+      // Make lanterns "burn" with high emissive intensity
       if (name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) {
-        setIsLantern(true)
-        if (child.isMesh) {
-          const worldPos = new THREE.Vector3()
-          child.getWorldPosition(worldPos)
-          setLanternPosition(worldPos)
-          // Add emissive glow to lantern materials
-          if (child.material) {
-            child.material.emissive = new THREE.Color('#ffaa44')
-            child.material.emissiveIntensity = 3
-          }
+        if (child.material) {
+          child.material.emissive = new THREE.Color('#ffaa44')
+          child.material.emissiveIntensity = 15
         }
       }
     })

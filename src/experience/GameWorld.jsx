@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useState } from 'react'
 import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { RigidBody } from '@react-three/rapier'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
@@ -20,7 +19,6 @@ import Environment from './Environment'
  */
 export default function GameWorld() {
   const [lowQuality, setLowQuality] = useState(false)
-  const playerLightRef = useRef()
   
   // Get roles from Playroom state
   const [roles] = useMultiplayerState('roles', { hunter: null, operator: null })
@@ -33,16 +31,6 @@ export default function GameWorld() {
   // Get Hunter's synced position for Operator view
   const hunterPlayer = players.find(p => p.id === roles?.hunter)
   const hunterPos = hunterPlayer?.getState('pos') || { x: 0, y: 2, z: 0 }
-
-  // Update player aura light position every frame
-  useFrame(() => {
-    if (playerLightRef.current && hunterPlayer) {
-      const pos = hunterPlayer.getState('pos')
-      if (pos) {
-        playerLightRef.current.position.set(pos.x, pos.y + 2, pos.z)
-      }
-    }
-  })
 
   return (
     <>
@@ -63,10 +51,10 @@ export default function GameWorld() {
       <object3D position={[100, -100, 100]} />
       
       {/* Fog */}
-      <fog attach="fog" args={['#050505', 2, 35]} />
+      <fogExp2 attach="fog" args={['#050505', 0.045]} />
 
-      {/* Player Aura - Single performant light that follows the player */}
-      <pointLight ref={playerLightRef} color="#ffaa44" intensity={10} distance={12} decay={2} />
+      {/* Player Aura - Single performant light that follows the player (now handled by HunterController) */}
+      {/* <pointLight ref={playerLightRef} color="#ffaa44" intensity={10} distance={12} decay={2} /> */}
 
       {/* Full Graveyard Environment */}
       <Environment />
@@ -105,7 +93,7 @@ export default function GameWorld() {
       {/* Post-Processing for Glow */}
       {!lowQuality && (
         <EffectComposer>
-          <Bloom luminanceThreshold={1} intensity={1.5} />
+          <Bloom luminanceThreshold={1} mipmapBlur intensity={1.2} radius={0.4} />
         </EffectComposer>
       )}
 
