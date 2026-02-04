@@ -41,11 +41,11 @@ export default function GameWorld() {
       {/* Background Color for Mist Effect */}
       <color attach="background" args={['#050505']} />
 
-      {/* Lighting - Dark Night Atmosphere */}
-      <ambientLight intensity={0.2} />
+      {/* Lighting - Dark Night Atmosphere - Low Global Light for Lantern Contrast */}
+      <ambientLight intensity={0.05} />
       <directionalLight
         position={[10, 20, 10]}
-        intensity={0.8}
+        intensity={0.1}
         color="#1a1a2e"
         castShadow
         shadow-bias={-0.0004}
@@ -57,11 +57,7 @@ export default function GameWorld() {
       />
       
       {/* Mist Fog */}
-      <fog attach="fog" args={['#050505', 2, 40]} />
-      
-      {/* Spooky accent lighting */}
-      <pointLight position={[5, 5, 5]} intensity={0.8} color="#FF6B35" />
-      <pointLight position={[-5, 3, -5]} intensity={0.5} color="#00F0FF" />
+      <fogExp2 attach="fog" args={['#050505', 0.04]} />
 
       {/* Full Graveyard Environment */}
       <Environment />

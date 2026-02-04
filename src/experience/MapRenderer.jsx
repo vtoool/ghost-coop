@@ -42,7 +42,7 @@ export function MapRenderer() {
     <group>
       <mesh position={[0, -0.5, 0]} receiveShadow>
         <boxGeometry args={[mapWidth, 1, mapHeight]} />
-        <meshStandardMaterial color="#6BAE45" roughness={0.8} />
+        <meshStandardMaterial color="#2d4a2d" roughness={0.8} metalness={0} />
       </mesh>
 
       <RigidBody type="fixed" position={[0, -0.5, 0]} colliders={false}>
@@ -78,7 +78,7 @@ function MapTile({ name, position, texture }) {
           // Add emissive glow to lantern materials
           if (child.material) {
             child.material.emissive = new THREE.Color('#ffaa44')
-            child.material.emissiveIntensity = 0.5
+            child.material.emissiveIntensity = 2
           }
         }
       }
@@ -97,9 +97,10 @@ function MapTile({ name, position, texture }) {
         <pointLight
           position={[lanternPosition.x, lanternPosition.y + 0.5, lanternPosition.z]}
           color="#ffaa44"
-          intensity={10}
-          distance={12}
+          intensity={20}
+          distance={15}
           decay={2}
+          castShadow
         />
       )}
     </group>
