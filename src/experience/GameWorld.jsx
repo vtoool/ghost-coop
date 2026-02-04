@@ -5,6 +5,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { Sparkles, Stats, PerformanceMonitor } from '@react-three/drei'
 import RoleManager from './RoleManager'
 import Environment from './Environment'
+import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
 
 /**
  * GameWorld - The 3D Scene
@@ -19,7 +20,10 @@ import Environment from './Environment'
  */
 export default function GameWorld() {
   const [lowQuality, setLowQuality] = useState(false)
-  
+
+  // Enable performance logging
+  usePerformanceLogger({ enabled: true, interval: 2000 })
+
   // Get roles from Playroom state
   const [roles] = useMultiplayerState('roles', { hunter: null, operator: null })
   const player = myPlayer()
@@ -36,7 +40,17 @@ export default function GameWorld() {
     <>
       {/* Performance Monitoring - Stats positioned in top-left corner */}
       <Stats className="stats" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 9999 }} />
-      <PerformanceMonitor onDecline={() => setLowQuality(true)} />
+      <PerformanceMonitor 
+        onDecline={() => {
+          console.log('[PerformanceMonitor] Quality degraded - reducing effects')
+          setLowQuality(true)
+        }}
+        onIncline={() => {
+          console.log('[PerformanceMonitor] Quality restored')
+          setLowQuality(false)
+        }}
+        smoothin={0.1}
+      />
 
       {/* Background Color for Mist Effect */}
       <color attach="background" args={['#050505']} />

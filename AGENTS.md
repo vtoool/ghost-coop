@@ -299,6 +299,73 @@ platformerTx.flipY = false
 
 ---
 
+## 🚦 Performance Optimization Log
+
+### Issue: High-DPI Mouse Jitter & FPS Drops
+
+**Problem:** Game loads at 30 FPS with heavy emissive materials, then "snaps" to 60 FPS after PerformanceMonitor triggers (10s delay).
+
+**Root Cause:** Embedded GLTF lights + 18 emissive lantern meshes + Bloom = heavy GPU load
+
+### Phase 1: Debug Logging (COMPLETED ✅)
+
+Added comprehensive performance diagnostics in `src/hooks/usePerformanceLogger.jsx`:
+
+| Metric | Trigger | Purpose |
+|--------|---------|---------|
+| FPS/Frame Time | Every 2s | Identify if below 60 FPS target |
+| Render Calls | Every 2s | Detect draw call spikes |
+| Active Lights | Every 2s | Confirm light purge working |
+| Emissive Meshes | Every 2s | Track emissive material count |
+| GLTF Audit | Per load | Log embedded light removal |
+
+### Phase 2: Emissive Removal Plan (STORED)
+
+**Objective:** Replace GPU-heavy emissive lantern materials with performant glow sprites.
+
+**Current (Problem):**
+- 18 lantern meshes with `emissiveIntensity={5}`
+- Bloom processing each high-intensity emissive surface
+- Frame time > 16ms on many browsers
+
+**Target (Solution):**
+- Remove all emissive modifications from lanterns
+- Add procedural glow sprites using Canvas-generated textures
+- Hero light provides actual illumination for player
+- Target frame time < 16ms consistently
+
+**Implementation Steps:**
+1. Create procedural glow texture using Canvas API (no external asset)
+2. Replace emissive materials with transparent sprite glow
+3. Use `THREE.AdditiveBlending` for realistic glow effect
+4. Verify PerformanceMonitor only reduces Bloom, not lights
+
+**Code Pattern:**
+```jsx
+// Replace emissive intensity with sprite glow
+{isLantern && (
+  <sprite position={[0, 1, 0]}>
+    <spriteMaterial
+      map={glowTexture}
+      transparent
+      opacity={0.6}
+      blending={THREE.AdditiveBlending}
+    />
+  </sprite>
+)}
+```
+
+**Files Affected:**
+- `src/experience/MapRenderer.jsx` - Remove emissive, add glow sprites
+- `src/hooks/usePerformanceLogger.jsx` - Log emissive count reduction
+
+**Success Criteria:**
+- Emissive meshes: 0
+- FPS: Stable 60
+- Frame time: < 16.67ms
+
+---
+
 ## ✅ Memory Log (Completed Features)
 
 ### Phase 1: Foundation
