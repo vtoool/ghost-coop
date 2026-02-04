@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, PointerLockControls, useKeyboardControls, PerspectiveCamera, useAnimations } from '@react-three/drei'
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
@@ -8,33 +8,31 @@ import { useShadowTexture } from '../hooks/useShadowTexture'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
+  const shadowRef = useRef(null)
   const [pivot, setPivot] = useState(null)
   const [currentAction, setCurrentAction] = useState("idle")
+  const { scene } = useThree()
+  const raycaster = useRef(new THREE.Raycaster())
+  const downVector = useRef(new THREE.Vector3(0, -1, 0))
 
-  const { scene, animations } = useGLTF('/models/characters/character-male-a.glb')
-  const { actions } = useAnimations(animations, scene)
+  const { scene: characterScene, animations } = useGLTF('/models/characters/character-male-a.glb')
+  const { actions } = useAnimations(animations, characterScene)
 
-  // Texture & Material Cleanup - Remove emissive for proper lighting
   useEffect(() => {
-    scene.traverse((child) => {
+    characterScene.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = false
         child.receiveShadow = false
-        // Remove emissive to let hero light do the work
         if (child.material) {
           child.material.emissive = new THREE.Color(0x000000)
           child.material.emissiveIntensity = 0
         }
       }
     })
-  }, [scene])
-
-  // Animation Switching Logic
+  }, [characterScene])
+  
   useEffect(() => {
-    console.log("Available animations:", Object.keys(actions))
-    console.log("Switching to:", currentAction)
-    
-     const action = actions[currentAction] || actions["idle"]
+    const action = actions[currentAction] || actions["idle"]
     if (action) {
       action.reset().fadeIn(0.2).play()
       return () => action.fadeOut(0.2)
@@ -49,11 +47,9 @@ export default function HunterController() {
     const player = myPlayer()
     if (!player) return
 
-    // 1. SYNC PIVOT (Waist Height)
     const pos = rigidBodyRef.current.translation()
     pivot.position.set(pos.x, pos.y, pos.z)
 
-    // 2. INPUTS (Corrected Direction)
     const { forward, backward, left, right } = getKeyboardControls()
     
     let joystick = { x: 0, y: 0, isActive: false }
@@ -63,14 +59,10 @@ export default function HunterController() {
     }
 
     const moveDir = new THREE.Vector3()
-    
-    // Get Camera Facing Direction
     const viewDir = new THREE.Vector3()
     pivot.getWorldDirection(viewDir)
     viewDir.y = 0 
     viewDir.normalize()
-    
-    // FLIP VECTOR: viewDir points to camera. We want to look AWAY from camera.
     viewDir.negate()
 
     const viewRight = new THREE.Vector3()
@@ -87,19 +79,16 @@ export default function HunterController() {
       moveDir.add(joyForward).add(joyRight)
     }
 
-    // 3. ANIMATION STATE
     const isMoving = moveDir.lengthSq() > 0.001
     const targetAction = isMoving ? "sprint" : "idle"
     if (targetAction !== currentAction) {
       setCurrentAction(targetAction)
     }
 
-    // 4. PHYSICS
     const currentVel = rigidBodyRef.current.linvel()
     if (moveDir.lengthSq() > 0.001) {
       moveDir.normalize().multiplyScalar(moveSpeed)
       rigidBodyRef.current.setLinvel({ x: moveDir.x, y: currentVel.y, z: moveDir.z }, true)
-      
       const angle = Math.atan2(moveDir.x, moveDir.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
@@ -107,13 +96,46 @@ export default function HunterController() {
     }
 
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
+
+    if (shadowRef.current) {
+      const playerPos = new THREE.Vector3(pos.x, pos.y, pos.z)
+      raycaster.current.set(playerPos, downVector.current)
+      
+      const intersects = raycaster.current.intersectObjects(scene.children, true)
+      
+      const validHit = intersects.find(hit => {
+        const obj = hit.object
+        if (shadowRef.current && (obj === shadowRef.current || shadowRef.current.children.includes(obj))) {
+          return false
+        }
+        if (obj === characterScene || characterScene.children.includes(obj)) {
+          return false
+        }
+        return true
+      })
+
+      if (validHit && validHit.distance < 10) {
+        const dist = validHit.distance
+        shadowRef.current.visible = true
+        shadowRef.current.position.set(playerPos.x, validHit.point.y + 0.02, playerPos.z)
+        
+        const scale = Math.max(0.3, 1 - (dist * 0.08))
+        shadowRef.current.scale.setScalar(scale)
+        
+        const opacity = Math.max(0.2, 0.8 - (dist * 0.1))
+        if (shadowRef.current.material) {
+          shadowRef.current.material.opacity = opacity
+        }
+      } else {
+        shadowRef.current.visible = false
+      }
+    }
   })
 
   const shadowTexture = useShadowTexture()
 
   return (
     <>
-      {/* BOOM ARM */}
       <group ref={setPivot}>
         <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
       </group>
@@ -129,18 +151,19 @@ export default function HunterController() {
         lockRotations
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-        
-        {/* Hero Light - Softened for smooth fog falloff */}
         <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
-        
-        {/* Soft Blurred Shadow - positioned at feet level */}
-        <mesh rotation-x={-Math.PI / 2} position-y={-0.98}>
-          <planeGeometry args={[0.8, 0.8]} />
-          <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
-        </mesh>
-        
-        <primitive object={scene} scale={0.6} position={[0, -0.8, 0]} />
+        <primitive object={characterScene} scale={0.6} position={[0, -0.8, 0]} />
       </RigidBody>
+
+      <mesh 
+        ref={shadowRef} 
+        rotation-x={-Math.PI / 2} 
+        position-y={0.02}
+        visible={false}
+      >
+        <planeGeometry args={[0.8, 0.8]} />
+        <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
+      </mesh>
     </>
   )
 }
