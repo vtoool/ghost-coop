@@ -24,6 +24,9 @@ Lobby & Connection Architecture — Foundation deployed and stable.
 **Phase 3: PENDING** ⏳
 Gameplay Mechanics — Ghost entity, Operator role, capture mechanics.
 
+**Phase 4: IN PROGRESS** 🔧
+Performance Optimization — Glow sprites, mouse buffer, FPS stabilization.
+
 ---
 
 ## 🏗️ Architecture
@@ -319,50 +322,51 @@ Added comprehensive performance diagnostics in `src/hooks/usePerformanceLogger.j
 | Emissive Meshes | Every 2s | Track emissive material count |
 | GLTF Audit | Per load | Log embedded light removal |
 
-### Phase 2: Emissive Removal Plan (STORED)
+### Phase 2: Emissive Removal Plan (COMPLETED) ✅
 
 **Objective:** Replace GPU-heavy emissive lantern materials with performant glow sprites.
 
-**Current (Problem):**
-- 18 lantern meshes with `emissiveIntensity={5}`
-- Bloom processing each high-intensity emissive surface
-- Frame time > 16ms on many browsers
+**What Was Done:**
+- Refactored `MapRenderer.jsx` to use procedural glow sprites instead of emissive materials
+- Created single cached glow texture (module-level) for all lanterns
+- Lantern detection now uses callback pattern: MapTile reports lantern positions to MapRenderer
+- Glow sprites rendered in separate group outside physics bodies
+- Bloom post-processing disabled (only needed for emissive, not sprites)
 
-**Target (Solution):**
-- Remove all emissive modifications from lanterns
-- Add procedural glow sprites using Canvas-generated textures
-- Hero light provides actual illumination for player
-- Target frame time < 16ms consistently
-
-**Implementation Steps:**
-1. Create procedural glow texture using Canvas API (no external asset)
-2. Replace emissive materials with transparent sprite glow
-3. Use `THREE.AdditiveBlending` for realistic glow effect
-4. Verify PerformanceMonitor only reduces Bloom, not lights
+**Key Changes:**
+1. `getGlowTexture()` - Module-level singleton texture creation
+2. `MapTile` - Detects lanterns, calls `onLanternDetected` callback
+3. `MapRenderer` - Collects lantern positions via state, renders GlowSprite components
+4. No emissive materials on lantern meshes
 
 **Code Pattern:**
 ```jsx
-// Replace emissive intensity with sprite glow
-{isLantern && (
-  <sprite position={[0, 1, 0]}>
-    <spriteMaterial
-      map={glowTexture}
-      transparent
-      opacity={0.6}
-      blending={THREE.AdditiveBlending}
-    />
-  </sprite>
-)}
+// GlowSprite - performance-friendly glow effect
+function GlowSprite({ position }) {
+  const texture = useMemo(() => getGlowTexture(), [])
+  return (
+    <sprite position={position} scale={[1.5, 1.5, 1]}>
+      <spriteMaterial
+        map={texture}
+        transparent
+        opacity={0.8}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </sprite>
+  )
+}
 ```
 
-**Files Affected:**
-- `src/experience/MapRenderer.jsx` - Remove emissive, add glow sprites
-- `src/hooks/usePerformanceLogger.jsx` - Log emissive count reduction
+**Files Modified:**
+- `src/experience/MapRenderer.jsx` - Complete refactor for glow sprites
 
-**Success Criteria:**
-- Emissive meshes: 0
-- FPS: Stable 60
-- Frame time: < 16.67ms
+**Performance Impact:**
+- Removed 18 emissive material updates per frame
+- Removed Bloom post-processing overhead
+- Added ~6 sprite draw calls (negligible)
+
+**Status:** Awaiting browser verification for FPS improvement
 
 ---
 
@@ -393,6 +397,15 @@ Added comprehensive performance diagnostics in `src/hooks/usePerformanceLogger.j
 - [x] Universal controls (Keyboard + Joystick)
 - [x] Solo Dev Mode bypass
 - [x] Shadow bias fixes
+
+### Phase 4: Performance Optimization
+
+- [x] Performance logging hook (usePerformanceLogger.jsx)
+- [x] Emissive lantern removal (MapRenderer.jsx)
+- [x] Glow sprites for lanterns
+- [x] Hero light for player illumination
+- [x] Blob shadow for player
+- [x] Bloom post-processing disabled
 
 ---
 
