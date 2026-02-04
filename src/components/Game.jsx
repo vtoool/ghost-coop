@@ -18,11 +18,12 @@ function Fallback({ error }) {
   )
 }
 
-function ClickToPlay({ isHunter, isTouchDevice }) {
+function ClickToPlay() {
   const [clicked, setClicked] = useState(false)
   const [roles] = useMultiplayerState('roles')
   const me = myPlayer()
   const isHunterConfirmed = roles ? roles.hunter === me?.id : null
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
   
   if (clicked) return null
   
@@ -56,7 +57,8 @@ export default function Game() {
     { name: 'forward', keys: ['ArrowUp', 'w', 'W'] },
     { name: 'backward', keys: ['ArrowDown', 's', 'S'] },
     { name: 'left', keys: ['ArrowLeft', 'a', 'A'] },
-    { name: 'right', keys: ['ArrowRight', 'd', 'D'] }
+    { name: 'right', keys: ['ArrowRight', 'd', 'D'] },
+    { name: 'jump', keys: ['Space'] }
   ], [])
   
   const [roles] = useMultiplayerState('roles')
@@ -93,7 +95,7 @@ export default function Game() {
         />
       )}
       
-      <ClickToPlay isHunter={isHunter} isTouchDevice={isTouchDevice} />
+      <ClickToPlay />
     </div>
   )
 }

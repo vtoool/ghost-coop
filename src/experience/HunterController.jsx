@@ -14,6 +14,7 @@ export default function HunterController() {
   const { scene } = useThree()
   const raycaster = useRef(new THREE.Raycaster())
   const downVector = useRef(new THREE.Vector3(0, -1, 0))
+  const groundDistance = useRef(Infinity)
 
   const { scene: characterScene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, characterScene)
@@ -41,6 +42,7 @@ export default function HunterController() {
 
   const [, getKeyboardControls] = useKeyboardControls()
   const moveSpeed = 6
+  const jumpVelocity = 8
 
   useFrame(() => {
     if (!rigidBodyRef.current || !pivot) return
@@ -50,7 +52,7 @@ export default function HunterController() {
     const pos = rigidBodyRef.current.translation()
     pivot.position.set(pos.x, pos.y, pos.z)
 
-    const { forward, backward, left, right } = getKeyboardControls()
+    const { forward, backward, left, right, jump } = getKeyboardControls()
     
     let joystick = { x: 0, y: 0, isActive: false }
     if (player.getJoystick) {
@@ -79,23 +81,35 @@ export default function HunterController() {
       moveDir.add(joyForward).add(joyRight)
     }
 
-    const isMoving = moveDir.lengthSq() > 0.001
-    const targetAction = isMoving ? "sprint" : "idle"
-    if (targetAction !== currentAction) {
-      setCurrentAction(targetAction)
+    const vel = rigidBodyRef.current.linvel()
+
+    let targetY = vel.y
+
+    if (jump && groundDistance.current < 0.5) {
+      targetY = jumpVelocity
     }
 
-    const currentVel = rigidBodyRef.current.linvel()
-    if (moveDir.lengthSq() > 0.001) {
+    const isMoving = moveDir.lengthSq() > 0.001
+    if (isMoving) {
       moveDir.normalize().multiplyScalar(moveSpeed)
-      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: currentVel.y, z: moveDir.z }, true)
+      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: targetY, z: moveDir.z }, true)
       const angle = Math.atan2(moveDir.x, moveDir.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
-      rigidBodyRef.current.setLinvel({ x: 0, y: currentVel.y, z: 0 }, true)
+      rigidBodyRef.current.setLinvel({ x: 0, y: targetY, z: 0 }, true)
     }
 
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
+
+    let targetAnim = "idle"
+    if (groundDistance.current > 0.6) {
+      targetAnim = vel.y > 0 ? "jump" : "fall"
+    } else {
+      targetAnim = moveDir.lengthSq() > 0.001 ? "sprint" : "idle"
+    }
+    if (currentAction !== targetAnim) {
+      setCurrentAction(targetAnim)
+    }
 
     if (shadowRef.current) {
       const playerPos = new THREE.Vector3(pos.x, pos.y, pos.z)
@@ -115,6 +129,7 @@ export default function HunterController() {
       })
 
       if (validHit && validHit.distance < 10) {
+        groundDistance.current = validHit.distance
         const dist = validHit.distance
         shadowRef.current.visible = true
         shadowRef.current.position.set(playerPos.x, validHit.point.y + 0.02, playerPos.z)
@@ -127,6 +142,7 @@ export default function HunterController() {
           shadowRef.current.material.opacity = opacity
         }
       } else {
+        groundDistance.current = Infinity
         shadowRef.current.visible = false
       }
     }
