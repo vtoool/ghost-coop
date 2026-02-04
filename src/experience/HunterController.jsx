@@ -4,6 +4,7 @@ import { useGLTF, PointerLockControls, useKeyboardControls, PerspectiveCamera, u
 import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
+import { useShadowTexture } from '../hooks/useShadowTexture'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
@@ -108,6 +109,8 @@ export default function HunterController() {
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
   })
 
+  const shadowTexture = useShadowTexture()
+
   return (
     <>
       {/* BOOM ARM */}
@@ -130,10 +133,10 @@ export default function HunterController() {
         {/* Hero Light - Softened for smooth fog falloff */}
         <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
         
-        {/* Blob Shadow - Performance-friendly fake shadow */}
-        <mesh rotation-x={-Math.PI / 2} position-y={-0.95}>
-          <circleGeometry args={[0.6, 32]} />
-          <meshBasicMaterial color="black" transparent opacity={0.4} />
+        {/* Soft Blurred Shadow */}
+        <mesh rotation-x={-Math.PI / 2} position-y={-4.98}>
+          <planeGeometry args={[0.8, 0.8]} />
+          <meshBasicMaterial map={shadowTexture} transparent opacity={0.6} depthWrite={false} />
         </mesh>
         
         <primitive object={scene} scale={0.6} position={[0, -0.8, 0]} />

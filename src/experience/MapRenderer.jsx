@@ -69,7 +69,7 @@ function MapTile({ name, position, texture, onLanternDetected }) {
       if (child.isMesh && !detectedRef.current) {
         const glowPos = [
           position[0],
-          position[1] + 0.3,
+          position[1] + 0.15,
           position[2]
         ]
         detectedRef.current = true

@@ -66,7 +66,7 @@ export default function GameWorld() {
       <object3D position={[100, -100, 100]} />
       
       {/* Fog - Matches background for infinite depth illusion */}
-      <fogExp2 attach="fog" args={['#0a0a12', 0.035]} />
+      <fogExp2 attach="fog" args={['#0a0a12', 0.06]} />
 
       {/* Player Aura - Single performant light that follows the player (now handled by HunterController) */}
       {/* <pointLight ref={playerLightRef} color="#ffaa44" intensity={10} distance={12} decay={2} /> */}
