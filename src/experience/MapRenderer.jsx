@@ -4,7 +4,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
 
-export function MapRenderer() {
+export default function MapRenderer() {
   const platformerTx = useTexture('/models/environment/Textures/colormap_platformer.png')
   platformerTx.colorSpace = THREE.SRGBColorSpace
   platformerTx.flipY = false
