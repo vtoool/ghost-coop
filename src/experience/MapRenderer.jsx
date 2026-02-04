@@ -38,7 +38,7 @@ export function MapRenderer() {
       roughness: 1,
     })
     const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
-    dirtMesh.position.set(0, 0.40, 0)
+    dirtMesh.position.set(0, 0.49, 0)
     dirtMesh.castShadow = true
     dirtMesh.receiveShadow = true
     group.add(dirtMesh)
@@ -57,7 +57,7 @@ export function MapRenderer() {
     grassMesh.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
-          color: '#599338',
+          color: '#6BAE45',
           roughness: 0.9,
         })
         child.castShadow = true
@@ -65,7 +65,7 @@ export function MapRenderer() {
       }
     })
 
-    grassMesh.position.set(0, 0.95, 0)
+    grassMesh.position.set(0, 1.0, 0)
 
     group.add(grassMesh)
 
