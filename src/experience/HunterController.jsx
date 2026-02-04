@@ -123,7 +123,7 @@ export default function HunterController() {
         lockRotations
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-        <primitive object={scene} scale={0.6} position={[0, -0.75, 0]} />
+        <primitive object={scene} scale={0.6} position={[0, -0.9, 0]} />
       </RigidBody>
     </>
   )
