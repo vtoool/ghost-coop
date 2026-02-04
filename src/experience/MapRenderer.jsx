@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
@@ -57,6 +57,14 @@ export function MapRenderer() {
 function MapTile({ name, position, texture }) {
   const { scene } = useGLTF(`/models/environment/${name}.glb`)
   
+  useEffect(() => {
+    scene.traverse((obj) => {
+      if (obj.isLight) {
+        obj.parent?.remove(obj)
+      }
+    })
+  }, [scene])
+  
   const clone = useMemo(() => {
     const c = scene.clone()
     c.traverse((child) => {
@@ -64,11 +72,11 @@ function MapTile({ name, position, texture }) {
         child.material = child.material.clone()
         child.material.map = texture
       }
-      // Make lanterns "burn" with high emissive intensity
+      // Make lanterns "burn" with calibrated emissive intensity
       if (name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')) {
         if (child.material) {
           child.material.emissive = new THREE.Color('#ffaa44')
-          child.material.emissiveIntensity = 15
+          child.material.emissiveIntensity = 5
         }
       }
     })

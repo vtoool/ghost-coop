@@ -90,10 +90,10 @@ export default function GameWorld() {
       {/* Floating Embers */}
       <Sparkles count={lowQuality ? 50 : 100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />
 
-      {/* Post-Processing for Glow */}
+      {/* Post-Processing for Glow - Only reduces bloom on low quality */}
       {!lowQuality && (
         <EffectComposer>
-          <Bloom luminanceThreshold={1} mipmapBlur intensity={1.2} radius={0.4} />
+          <Bloom luminanceThreshold={1} intensity={0.8} />
         </EffectComposer>
       )}
 
