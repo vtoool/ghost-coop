@@ -38,7 +38,7 @@ export function MapRenderer() {
       roughness: 1,
     })
     const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
-    dirtMesh.position.set(0, 0.5, 0)
+    dirtMesh.position.set(0, 0.49, 0)
     dirtMesh.castShadow = true
     dirtMesh.receiveShadow = true
     group.add(dirtMesh)
@@ -54,7 +54,7 @@ export function MapRenderer() {
         child.receiveShadow = true
       }
     })
-    grassMesh.position.set(0, 0.5, 0)
+    grassMesh.position.set(0, 1.0, 0)
     group.add(grassMesh)
 
     return group
