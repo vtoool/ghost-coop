@@ -32,13 +32,13 @@ export function MapRenderer() {
   const squareClone = useMemo(() => {
     const group = new THREE.Group()
 
-    const dirtGeo = new THREE.BoxGeometry(2.1, 1, 2.1)
+    const dirtGeo = new THREE.BoxGeometry(2.3, 1, 2.3)
     const dirtMat = new THREE.MeshStandardMaterial({
       color: '#6d4e3d',
       roughness: 1,
     })
     const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
-    dirtMesh.position.set(0, 0.49, 0)
+    dirtMesh.position.set(0, 0.45, 0)
     dirtMesh.castShadow = true
     dirtMesh.receiveShadow = true
     group.add(dirtMesh)
@@ -47,22 +47,26 @@ export function MapRenderer() {
     const box = new THREE.Box3().setFromObject(grassMesh)
     const size = new THREE.Vector3()
     box.getSize(size)
-    const targetSize = 2.1
-    const scaleX = size.x > 0 ? targetSize / size.x : 2.1
-    const scaleZ = size.z > 0 ? targetSize / size.z : 2.1
+
+    const targetSize = 2.3
+    const scaleX = size.x > 0 ? targetSize / size.x : 2.3
+    const scaleZ = size.z > 0 ? targetSize / size.z : 2.3
+
     grassMesh.scale.set(scaleX, 1, scaleZ)
 
     grassMesh.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
-          color: '#63a73c',
-          roughness: 1,
+          color: '#599338',
+          roughness: 0.9,
         })
         child.castShadow = true
         child.receiveShadow = true
       }
     })
-    grassMesh.position.set(0, 1.0, 0)
+
+    grassMesh.position.set(0, 0.95, 0)
+
     group.add(grassMesh)
 
     return group
