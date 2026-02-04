@@ -30,8 +30,21 @@ export function MapRenderer() {
   }, [roundedScene, platformerTx])
 
   const squareClone = useMemo(() => {
-    const clone = squareScene.clone()
-    clone.traverse((child) => {
+    const group = new THREE.Group()
+
+    const dirtGeo = new THREE.BoxGeometry(2, 1, 2)
+    const dirtMat = new THREE.MeshStandardMaterial({
+      color: '#6d4e3d',
+      roughness: 1,
+    })
+    const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
+    dirtMesh.position.set(0, 0.5, 0)
+    dirtMesh.castShadow = true
+    dirtMesh.receiveShadow = true
+    group.add(dirtMesh)
+
+    const grassMesh = squareScene.clone()
+    grassMesh.traverse((child) => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
           color: '#63a73c',
@@ -41,19 +54,10 @@ export function MapRenderer() {
         child.receiveShadow = true
       }
     })
+    grassMesh.position.set(0, 0.5, 0)
+    group.add(grassMesh)
 
-    const dirtGeo = new THREE.BoxGeometry(2, 1, 2)
-    const dirtMat = new THREE.MeshStandardMaterial({
-      color: '#6d4e3d',
-      roughness: 1,
-    })
-    const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat)
-    dirtMesh.position.set(0, -0.5, 0)
-    dirtMesh.castShadow = true
-    dirtMesh.receiveShadow = true
-    clone.add(dirtMesh)
-
-    return clone
+    return group
   }, [squareScene])
 
   const gridSize = 2
