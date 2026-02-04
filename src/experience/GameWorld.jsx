@@ -36,6 +36,7 @@ export default function GameWorld() {
         position={[10, 20, 10]}
         intensity={1.5}
         castShadow
+        shadow-bias={-0.0004}
         shadow-mapSize={[2048, 2048]}
       />
       

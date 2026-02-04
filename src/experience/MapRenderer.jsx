@@ -41,7 +41,7 @@ export default function MapRenderer() {
         <primitive 
           key={`floor-${x}-${z}`}
           object={floorClone.clone()}
-          position={[x * gridSize - offsetX, -1, z * gridSize - offsetZ]}
+          position={[x * gridSize - offsetX, -1.01, z * gridSize - offsetZ]}
         />
       )
     }
