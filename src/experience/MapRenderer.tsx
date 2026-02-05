@@ -241,7 +241,7 @@ export function MapRenderer() {
       <Instancer
         model="road"
         positions={positions.road}
-        scale={5}
+        scale={25}
         randomRotation={true}
         collider={undefined}
         debugColor="hotpink"
