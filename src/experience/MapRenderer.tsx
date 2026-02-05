@@ -239,6 +239,8 @@ export function MapRenderer() {
       <Instancer
         model="road"
         positions={positions.road}
+        scale={3}
+        randomRotation
       />
 
       {lanternPositions.map((pos, i) => (
