@@ -16,6 +16,7 @@ export default function HunterController() {
   const downVector = useRef(new THREE.Vector3(0, -1, 0))
   const groundDistance = useRef(Infinity)
   const wasGrounded = useRef(false)
+  const canJump = useRef(true)
 
   const { scene: characterScene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, characterScene)
@@ -43,7 +44,7 @@ export default function HunterController() {
 
   const [, getKeyboardControls] = useKeyboardControls()
   const moveSpeed = 3
-  const jumpVelocity = 1
+  const jumpVelocity = 3
 
   useFrame(() => {
     if (!rigidBodyRef.current || !pivot) return
@@ -88,9 +89,17 @@ export default function HunterController() {
 
     let targetY = vel.y
 
-    if (jump && isGrounded) {
+    if (jump && isGrounded && canJump.current) {
       targetY = jumpVelocity
-      console.log('[Jump] Jump triggered - groundDist:', groundDistance.current.toFixed(2))
+      canJump.current = false
+      console.log('[Jump] JUMP! velocity=' + jumpVelocity + ', canJump=false (land to reset)')
+    } else if (!jump) {
+      console.log('[Jump] Space released, canJump=' + canJump.current)
+    }
+
+    if (isGrounded && !canJump.current) {
+      console.log('[Jump] Landed! canJump=true (ready to jump again)')
+      canJump.current = true
     }
 
     wasGrounded.current = isGrounded
