@@ -4,8 +4,6 @@ import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
 import { Instancer } from './Instancer'
 
-const DEBUG_LANTERNS = false
-
 let glowTextureCache: THREE.CanvasTexture | null = null
 
 function getGlowTexture(): THREE.CanvasTexture {
@@ -87,6 +85,57 @@ interface ModelPositions {
   road: Position3D[]
 }
 
+function parseWallsAndFences(
+  char: string,
+  positions: ModelPositions,
+  z: number,
+  x: number,
+  pos: Position3D
+) {
+  const hasN = level1[z - 1]?.[x] === char
+  const hasS = level1[z + 1]?.[x] === char
+  const hasW = level1[z]?.[x - 1] === char
+  const hasE = level1[z]?.[x + 1] === char
+
+  if (char === 'x') {
+    if (hasN && hasS && !hasW && !hasE) {
+      positions.iron_fence_v.push(pos)
+    } else if (hasW && hasE && !hasN && !hasS) {
+      positions.iron_fence_h.push(pos)
+    } else if (hasS && hasE) {
+      positions.iron_fence_curve_c0.push(pos)
+    } else if (hasS && hasW) {
+      positions.iron_fence_curve_c90.push(pos)
+    } else if (hasN && hasW) {
+      positions.iron_fence_curve_c180.push(pos)
+    } else if (hasN && hasE) {
+      positions.iron_fence_curve_c270.push(pos)
+    } else if (hasN || hasS) {
+      positions.iron_fence_v.push(pos)
+    } else {
+      positions.iron_fence_h.push(pos)
+    }
+  } else if (char === '#') {
+    if (hasN && hasS && !hasW && !hasE) {
+      positions.stone_wall_v.push(pos)
+    } else if (hasW && hasE && !hasN && !hasS) {
+      positions.stone_wall_h.push(pos)
+    } else if (hasS && hasE) {
+      positions.stone_wall_curve_c0.push(pos)
+    } else if (hasS && hasW) {
+      positions.stone_wall_curve_c90.push(pos)
+    } else if (hasN && hasW) {
+      positions.stone_wall_curve_c180.push(pos)
+    } else if (hasN && hasE) {
+      positions.stone_wall_curve_c270.push(pos)
+    } else if (hasN || hasS) {
+      positions.stone_wall_v.push(pos)
+    } else {
+      positions.stone_wall_h.push(pos)
+    }
+  }
+}
+
 function useMapParser() {
   return useMemo(() => {
     const positions: ModelPositions = {
@@ -128,58 +177,8 @@ function useMapParser() {
           const glowPos: Position3D = [pos[0], pos[1] + 0.15, pos[2]]
           lanternPositions.push(glowPos)
           positions.lantern_candle.push(pos)
-        } else if (modelName === 'iron_fence') {
-          const hasN = level1[z - 1]?.[x] === 'x'
-          const hasS = level1[z + 1]?.[x] === 'x'
-          const hasW = level1[z]?.[x - 1] === 'x'
-          const hasE = level1[z]?.[x + 1] === 'x'
-
-          const cornerCount = (hasN ? 1 : 0) + (hasS ? 1 : 0) + (hasW ? 1 : 0) + (hasE ? 1 : 0)
-
-          if (cornerCount >= 2) {
-            if (hasS && hasE) positions.iron_fence_curve_c0.push(pos)
-            else if (hasS && hasW) positions.iron_fence_curve_c90.push(pos)
-            else if (hasN && hasW) positions.iron_fence_curve_c180.push(pos)
-            else if (hasN && hasE) positions.iron_fence_curve_c270.push(pos)
-          } else if ((hasN || hasS) && !hasW && !hasE) {
-            positions.iron_fence_v.push(pos)
-          } else {
-            positions.iron_fence_h.push(pos)
-          }
-        } else if (modelName === 'stone_wall') {
-          const hasN = level1[z - 1]?.[x] === '#'
-          const hasS = level1[z + 1]?.[x] === '#'
-          const hasW = level1[z]?.[x - 1] === '#'
-          const hasE = level1[z]?.[x + 1] === '#'
-
-          const cornerCount = (hasN ? 1 : 0) + (hasS ? 1 : 0) + (hasW ? 1 : 0) + (hasE ? 1 : 0)
-
-          console.log(`[Wall] x=${x}, z=${z}, hasN=${hasN}, hasS=${hasS}, hasW=${hasW}, hasE=${hasE}, count=${cornerCount}`)
-
-          if (cornerCount >= 2) {
-            if (hasS && hasE) {
-              console.log(`  → Curve SE (c0)`)
-              positions.stone_wall_curve_c0.push(pos)
-            } else if (hasS && hasW) {
-              console.log(`  → Curve SW (c90)`)
-              positions.stone_wall_curve_c90.push(pos)
-            } else if (hasN && hasW) {
-              console.log(`  → Curve NW (c180)`)
-              positions.stone_wall_curve_c180.push(pos)
-            } else if (hasN && hasE) {
-              console.log(`  → Curve NE (c270)`)
-              positions.stone_wall_curve_c270.push(pos)
-            } else {
-              console.log(`  → FALLBACK to curve_c0 (3+ neighbors)`)
-              positions.stone_wall_curve_c0.push(pos)
-            }
-          } else if ((hasN || hasS) && !hasW && !hasE) {
-            console.log(`  → Vertical`)
-            positions.stone_wall_v.push(pos)
-          } else {
-            console.log(`  → Horizontal`)
-            positions.stone_wall_h.push(pos)
-          }
+        } else if (char === 'x' || char === '#') {
+          parseWallsAndFences(char, positions, z, x, pos)
         } else if (modelName === 'road') {
           positions.road.push([pos[0], 0.02, pos[2]])
         } else {
@@ -188,32 +187,6 @@ function useMapParser() {
           }
         }
       })
-    })
-
-    if (DEBUG_LANTERNS) {
-      console.log('[MapParser] Parsed positions:')
-      Object.entries(positions).forEach(([key, pos]) => {
-        if (pos.length > 0) {
-          console.log(`  ${key}: ${pos.length} instances`)
-        }
-      })
-    }
-
-    console.log('🧱 Wall Bucket Census:', {
-      Horizontal: positions.stone_wall_h?.length || 0,
-      Vertical: positions.stone_wall_v?.length || 0,
-      Curve_0: positions.stone_wall_curve_c0?.length || 0,
-      Curve_90: positions.stone_wall_curve_c90?.length || 0,
-      Curve_180: positions.stone_wall_curve_c180?.length || 0,
-      Curve_270: positions.stone_wall_curve_c270?.length || 0,
-    })
-    console.log('🚧 Fence Bucket Census:', {
-      Horizontal: positions.iron_fence_h?.length || 0,
-      Vertical: positions.iron_fence_v?.length || 0,
-      Curve_0: positions.iron_fence_curve_c0?.length || 0,
-      Curve_90: positions.iron_fence_curve_c90?.length || 0,
-      Curve_180: positions.iron_fence_curve_c180?.length || 0,
-      Curve_270: positions.iron_fence_curve_c270?.length || 0,
     })
 
     return { positions, lanternPositions }
@@ -234,7 +207,6 @@ export function MapRenderer() {
         <CuboidCollider args={[mapWidth / 2, 0.5, mapHeight / 2]} />
       </RigidBody>
 
-      {/* Iron Fences */}
       <Instancer model="iron_fence" positions={positions.iron_fence_h} collider="cuboid" />
       <Instancer model="iron_fence" positions={positions.iron_fence_v} rotation={Math.PI / 2} collider="cuboid" />
       <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c0} collider="cuboid" />
@@ -242,7 +214,6 @@ export function MapRenderer() {
       <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c180} rotation={Math.PI} collider="cuboid" />
       <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c270} rotation={-Math.PI / 2} collider="cuboid" />
 
-      {/* Stone Walls */}
       <Instancer model="stone_wall" positions={positions.stone_wall_h} collider="cuboid" />
       <Instancer model="stone_wall" positions={positions.stone_wall_v} rotation={Math.PI / 2} collider="cuboid" />
       <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c0} collider="cuboid" />
