@@ -78,8 +78,13 @@ function processGLTF(gltfScene: THREE.Group, name: string, texture: THREE.Textur
 
         mat.map = texture
         mat.color = new THREE.Color(0xffffff)
+        mat.metalness = 0
+        mat.roughness = 1
         mat.emissive = new THREE.Color(0x000000)
         mat.emissiveIntensity = 0
+        if (mat.map) {
+          mat.map.colorSpace = THREE.SRGBColorSpace
+        }
       }
     }
   })
@@ -103,8 +108,13 @@ function extractMainGeometry(gltf: THREE.Group, texture: THREE.Texture): { geome
 
     material.map = texture
     material.color = new THREE.Color(0xffffff)
+    material.metalness = 0
+    material.roughness = 1
     material.emissive = new THREE.Color(0x000000)
     material.emissiveIntensity = 0
+    if (material.map) {
+      material.map.colorSpace = THREE.SRGBColorSpace
+    }
 
     return { geometry, material }
   }
