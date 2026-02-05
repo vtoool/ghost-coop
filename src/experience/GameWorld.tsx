@@ -1,8 +1,9 @@
 import type { ReactElement } from 'react'
 import { useState } from 'react'
-import { useMultiplayerState, myPlayer } from 'playroomkit'
+import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { Stats, PerformanceMonitor, Sparkles } from '@react-three/drei'
 import RoleManager from './RoleManager'
+import RemotePlayer from './RemotePlayer'
 import Environment from './Environment'
 import Ghost from './Ghost'
 import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
@@ -29,6 +30,7 @@ export default function GameWorld(): ReactElement {
   // Get roles from Playroom state
   const [roles] = useMultiplayerState<Roles>('roles', { hunter: null, operator: null })
   const player = myPlayer()
+  const players = usePlayersList(true)
 
   const handlePerformanceDecline = (): void => {
     console.log('[PerformanceMonitor] Quality degraded - reducing effects')
@@ -85,8 +87,22 @@ export default function GameWorld(): ReactElement {
           </EffectComposer>
         )} */}
 
-        {/* Role-based view management */}
-        <RoleManager roles={roles} playerId={player?.id} />
+        {/* Player Rendering Loop */}
+        {players.map((p) => {
+          const isLocal = p.id === player?.id
+
+          return isLocal ? (
+            <RoleManager
+              key={p.id}
+              roles={roles}
+              playerId={p.id}
+              player={p}
+              players={players}
+            />
+          ) : (
+            <RemotePlayer key={p.id} player={p} />
+          )
+        })}
       </>
     </ObjectRegistry>
   )

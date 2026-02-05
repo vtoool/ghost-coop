@@ -2,22 +2,30 @@ import { PerspectiveCamera, OrthographicCamera } from '@react-three/drei'
 import HunterController from './HunterController'
 import OperatorHUD from '../components/OperatorHUD'
 import type { Roles } from '../types/game.types'
+import type { Player } from 'playroomkit'
 
-/**
- * RoleManager - Role-based View Logic
- * 
- * Renders different cameras and avatars based on player role:
- * - Hunter: 3rd person perspective camera + full HunterController (GLB + Physics + Controls)
- * - Operator: Top-down orthographic camera (no avatar, sees Hunter synced position)
- */
 interface RoleManagerProps {
   roles: Roles | undefined;
   playerId: string | undefined;
+  player: Player;
+  players: Player[];
 }
 
-const RoleManager: React.FC<RoleManagerProps> = ({ roles, playerId }) => {
+const RoleManager: React.FC<RoleManagerProps> = ({ roles, playerId, player: _player, players }) => {
   const isHunter: boolean = roles?.hunter === playerId
   const isOperator: boolean = roles?.operator === playerId
+
+  // Multiplayer testing mode: both players get Hunter controls
+  const isMultiplayer = players.length >= 2
+
+  if (isMultiplayer) {
+    return (
+      <>
+        <PerspectiveCamera makeDefault position={[0, 5, 10]} rotation={[-0.2, 0, 0]} />
+        <HunterController />
+      </>
+    )
+  }
 
   if (isHunter) {
     return (
