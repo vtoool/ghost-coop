@@ -1,6 +1,6 @@
 import { useRef, useLayoutEffect, useMemo, type ReactNode } from 'react'
 import type { InstancedMesh } from 'three'
-import { Object3D } from 'three'
+import * as THREE from 'three'
 import { InstancedRigidBodies } from '@react-three/rapier'
 import { useObjectRegistry } from './ObjectRegistry'
 
@@ -12,6 +12,7 @@ interface InstancerProps {
   randomRotation?: boolean
   randomSeed?: number
   collider?: 'cuboid' | 'hull' | 'trimesh' | null
+  debugColor?: string
 }
 
 interface RigidBodyInstance {
@@ -21,7 +22,7 @@ interface RigidBodyInstance {
   scale: [number, number, number]
 }
 
-const tempObject = new Object3D()
+const tempObject = new THREE.Object3D()
 
 function seededRandom(seed: number): number {
   const x = Math.sin(seed * 9999) * 10000
@@ -36,6 +37,7 @@ export function Instancer({
   randomRotation = false,
   randomSeed = Math.random(),
   collider = 'cuboid',
+  debugColor,
 }: InstancerProps): ReactNode {
   const { getModel, isLoading } = useObjectRegistry()
   const meshRef = useRef<InstancedMesh>(null)
@@ -99,7 +101,9 @@ export function Instancer({
     return null
   }
 
-  const material = modelData.material ?? undefined
+  const material = debugColor
+    ? new THREE.MeshBasicMaterial({ color: debugColor, wireframe: true })
+    : (modelData.material ?? undefined)
 
   const isVisualOnly = collider === null || collider === undefined
 

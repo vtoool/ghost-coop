@@ -244,6 +244,7 @@ export function MapRenderer() {
         scale={1}
         randomRotation={true}
         collider={undefined}
+        debugColor="hotpink"
       />
 
       {lanternPositions.map((pos, i) => (
