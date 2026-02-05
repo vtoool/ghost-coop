@@ -5,12 +5,6 @@ import * as THREE from 'three'
 import { SkeletonUtils } from 'three-stdlib'
 import type { Player } from 'playroomkit'
 
-const REMOTE_MATERIAL = new THREE.MeshStandardMaterial({
-  color: '#ff3333',
-  roughness: 0.8,
-  map: null
-})
-
 function useSkinnedMeshClone(path: string) {
   const { scene, animations } = useGLTF(path)
   const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene])
@@ -27,9 +21,18 @@ export default function RemotePlayer({ player }: { player: Player }) {
   useMemo(() => {
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
-        (child as THREE.Mesh).material = REMOTE_MATERIAL
-        child.castShadow = true
-        child.receiveShadow = true
+        const mesh = child as THREE.Mesh
+        const oldMat = mesh.material as THREE.MeshStandardMaterial
+        const newMat = oldMat.clone()
+
+        newMat.color.set(0xffffff)
+        newMat.roughness = 1
+        newMat.metalness = 0
+        newMat.emissive.set(0x000000)
+
+        mesh.material = newMat
+        mesh.castShadow = true
+        mesh.receiveShadow = true
       }
     })
   }, [scene])
@@ -44,7 +47,7 @@ export default function RemotePlayer({ player }: { player: Player }) {
   useFrame((_, delta) => {
     const targetPos = player.getState<{ x: number; y: number; z: number }>('pos')
     if (targetPos && group.current) {
-      group.current.position.lerp(new THREE.Vector3(targetPos.x, targetPos.y - 1, targetPos.z), delta * 15)
+      group.current.position.lerp(new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z), delta * 15)
     }
 
     const targetRot = player.getState<{ x: number; y: number; z: number; w: number }>('quat')
@@ -65,7 +68,7 @@ export default function RemotePlayer({ player }: { player: Player }) {
 
   return (
     <group ref={group}>
-      <primitive object={scene} />
+      <primitive object={scene} scale={0.6} position={[0, -0.8, 0]} />
     </group>
   )
 }
