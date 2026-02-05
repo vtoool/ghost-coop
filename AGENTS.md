@@ -70,6 +70,28 @@ Performance Optimization — Glow sprites, mouse buffer, FPS stabilization.
 
 **New Rule:** UI components assume network is ready (enforced by Gatekeeper).
 
+### 🧠 Critical Thinking Protocol
+
+**Purpose:** Avoid "yes-man" behavior and pursue truth-seeking optimization.
+
+**Anti-Patterns to Reject:**
+1. **Accepting diagnoses without verification** - If a theory is proposed, verify with evidence before implementing fixes
+2. **Comfort over correctness** - The easiest solution isn't always the right one for performance
+3. **Over-engineering** - Don't add complexity that isn't needed for the actual bottleneck
+4. **Assumption cascading** - "X causes Y" without profiling evidence
+
+**Required Actions for Performance Issues:**
+1. **Profile before fixing** - Use Chrome DevTools Performance tab to identify actual bottlenecks
+2. **Measure twice, cut once** - Quantify the issue with numbers (FPS, draw calls, memory)
+3. **Hypothesis testing** - When multiple theories exist, test the most likely first or use elimination
+4. **Question diagnoses** - "Is `usePlayersList` really firing 60fps, or is something else re-rendering?"
+
+**Verification Checklist for Proposed Changes:**
+- [ ] Does this solve the actual root cause?
+- [ ] Have we measured before and after?
+- [ ] Is this the minimal change needed?
+- [ ] Could there be a simpler explanation?
+
 ---
 
 ## 🎮 Player Roles
