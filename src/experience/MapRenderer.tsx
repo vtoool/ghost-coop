@@ -122,54 +122,58 @@ function useMapParser() {
 
         const pos = calculateGridPosition(x, z)
 
-        if (modelName === 'lantern_candle') {
-          const glowPos: Position3D = [pos[0], pos[1] + 0.15, pos[2]]
-          lanternPositions.push(glowPos)
-          positions.lantern_candle.push(pos)
-        } else if (char === 'x') {
-          const hasN = level1[z - 1]?.[x] === 'x'
-          const hasS = level1[z + 1]?.[x] === 'x'
-          const hasW = level1[z]?.[x - 1] === 'x'
-          const hasE = level1[z]?.[x + 1] === 'x'
-
-          if (hasS && hasE) {
-            positions.iron_fence_corner_tl.push(pos)
-          } else if (hasS && hasW) {
-            positions.iron_fence_corner_tr.push(pos)
-          } else if (hasN && hasW) {
-            positions.iron_fence_corner_br.push(pos)
-          } else if (hasN && hasE) {
-            positions.iron_fence_corner_bl.push(pos)
-          } else if (hasN || hasS) {
-            positions.iron_fence_straight_v.push(pos)
-          } else {
-            positions.iron_fence_straight_h.push(pos)
-          }
-        } else if (char === '#') {
-          const hasN = level1[z - 1]?.[x] === '#'
-          const hasS = level1[z + 1]?.[x] === '#'
-          const hasW = level1[z]?.[x - 1] === '#'
-          const hasE = level1[z]?.[x + 1] === '#'
-
-          if (hasS && hasE) {
+        switch (char) {
+          case '┌':
             positions.stone_wall_corner_tl.push(pos)
-          } else if (hasS && hasW) {
+            break
+          case '┐':
             positions.stone_wall_corner_tr.push(pos)
-          } else if (hasN && hasW) {
+            break
+          case '┘':
             positions.stone_wall_corner_br.push(pos)
-          } else if (hasN && hasE) {
+            break
+          case '└':
             positions.stone_wall_corner_bl.push(pos)
-          } else if (hasN || hasS) {
+            break
+          case '|':
             positions.stone_wall_straight_v.push(pos)
-          } else {
+            break
+          case '#':
             positions.stone_wall_straight_h.push(pos)
-          }
-        } else if (modelName === 'road') {
-          positions.road.push([pos[0], 0.02, pos[2]])
-        } else {
-          if (positions[modelName as keyof ModelPositions]) {
-            positions[modelName as keyof ModelPositions].push(pos)
-          }
+            break
+          case '1':
+            positions.iron_fence_corner_tl.push(pos)
+            break
+          case '2':
+            positions.iron_fence_corner_tr.push(pos)
+            break
+          case '3':
+            positions.iron_fence_corner_br.push(pos)
+            break
+          case '4':
+            positions.iron_fence_corner_bl.push(pos)
+            break
+          case 'v':
+            positions.iron_fence_straight_v.push(pos)
+            break
+          case 'h':
+            positions.iron_fence_straight_h.push(pos)
+            break
+          case 'L':
+            {
+              const glowPos: Position3D = [pos[0], pos[1] + 0.15, pos[2]]
+              lanternPositions.push(glowPos)
+              positions.lantern_candle.push(pos)
+            }
+            break
+          case '=':
+            positions.road.push([pos[0], 0.02, pos[2]])
+            break
+          default:
+            if (positions[modelName as keyof ModelPositions]) {
+              positions[modelName as keyof ModelPositions].push(pos)
+            }
+            break
         }
       })
     })
