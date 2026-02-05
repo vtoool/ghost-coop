@@ -173,6 +173,10 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   graveyardTx.colorSpace = THREE.SRGBColorSpace
   graveyardTx.flipY = false
 
+  const roadTx = useTexture('/models/environment/Textures/colormap_road.png')
+  roadTx.colorSpace = THREE.SRGBColorSpace
+  roadTx.flipY = false
+
   const totalCount = Object.keys(MODEL_PATHS).length
   const isLoading = loadingProgress.loaded < totalCount
 
@@ -199,9 +203,12 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
 
   return (
     <ObjectRegistryContext.Provider value={contextValue}>
-      {modelEntries.map(([name, path]) => (
-        <ModelLoader key={name} name={name} path={path} texture={graveyardTx} onLoad={handleModelLoad} />
-      ))}
+      {modelEntries.map(([name, path]) => {
+        const texture = name === 'road' ? roadTx : graveyardTx
+        return (
+          <ModelLoader key={name} name={name} path={path} texture={texture} onLoad={handleModelLoad} />
+        )
+      })}
       {children}
     </ObjectRegistryContext.Provider>
   )
