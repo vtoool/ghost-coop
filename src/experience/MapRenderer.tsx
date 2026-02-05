@@ -60,18 +60,18 @@ function calculateGridPosition(x: number, z: number): [number, number, number] {
 }
 
 interface ModelPositions {
-  iron_fence_h: Position3D[]
-  iron_fence_v: Position3D[]
-  iron_fence_curve_c0: Position3D[]
-  iron_fence_curve_c90: Position3D[]
-  iron_fence_curve_c180: Position3D[]
-  iron_fence_curve_c270: Position3D[]
-  stone_wall_h: Position3D[]
-  stone_wall_v: Position3D[]
-  stone_wall_curve_c0: Position3D[]
-  stone_wall_curve_c90: Position3D[]
-  stone_wall_curve_c180: Position3D[]
-  stone_wall_curve_c270: Position3D[]
+  iron_fence_straight_h: Position3D[]
+  iron_fence_straight_v: Position3D[]
+  iron_fence_corner_tl: Position3D[]
+  iron_fence_corner_tr: Position3D[]
+  iron_fence_corner_br: Position3D[]
+  iron_fence_corner_bl: Position3D[]
+  stone_wall_straight_h: Position3D[]
+  stone_wall_straight_v: Position3D[]
+  stone_wall_corner_tl: Position3D[]
+  stone_wall_corner_tr: Position3D[]
+  stone_wall_corner_br: Position3D[]
+  stone_wall_corner_bl: Position3D[]
   pine_crooked: Position3D[]
   pine: Position3D[]
   oak: Position3D[]
@@ -85,72 +85,21 @@ interface ModelPositions {
   road: Position3D[]
 }
 
-function parseWallsAndFences(
-  char: string,
-  positions: ModelPositions,
-  z: number,
-  x: number,
-  pos: Position3D
-) {
-  const hasN = level1[z - 1]?.[x] === char
-  const hasS = level1[z + 1]?.[x] === char
-  const hasW = level1[z]?.[x - 1] === char
-  const hasE = level1[z]?.[x + 1] === char
-
-  if (char === 'x') {
-    if (hasN && hasS && !hasW && !hasE) {
-      positions.iron_fence_v.push(pos)
-    } else if (hasW && hasE && !hasN && !hasS) {
-      positions.iron_fence_h.push(pos)
-    } else if (hasS && hasE) {
-      positions.iron_fence_curve_c270.push(pos)
-    } else if (hasS && hasW) {
-      positions.iron_fence_curve_c0.push(pos)
-    } else if (hasN && hasW) {
-      positions.iron_fence_curve_c90.push(pos)
-    } else if (hasN && hasE) {
-      positions.iron_fence_curve_c180.push(pos)
-    } else if (hasN || hasS) {
-      positions.iron_fence_v.push(pos)
-    } else {
-      positions.iron_fence_h.push(pos)
-    }
-  } else if (char === '#') {
-    if (hasN && hasS && !hasW && !hasE) {
-      positions.stone_wall_v.push(pos)
-    } else if (hasW && hasE && !hasN && !hasS) {
-      positions.stone_wall_h.push(pos)
-    } else if (hasS && hasE) {
-      positions.stone_wall_curve_c270.push(pos)
-    } else if (hasS && hasW) {
-      positions.stone_wall_curve_c0.push(pos)
-    } else if (hasN && hasW) {
-      positions.stone_wall_curve_c90.push(pos)
-    } else if (hasN && hasE) {
-      positions.stone_wall_curve_c180.push(pos)
-    } else if (hasN || hasS) {
-      positions.stone_wall_v.push(pos)
-    } else {
-      positions.stone_wall_h.push(pos)
-    }
-  }
-}
-
 function useMapParser() {
   return useMemo(() => {
     const positions: ModelPositions = {
-      iron_fence_h: [],
-      iron_fence_v: [],
-      iron_fence_curve_c0: [],
-      iron_fence_curve_c90: [],
-      iron_fence_curve_c180: [],
-      iron_fence_curve_c270: [],
-      stone_wall_h: [],
-      stone_wall_v: [],
-      stone_wall_curve_c0: [],
-      stone_wall_curve_c90: [],
-      stone_wall_curve_c180: [],
-      stone_wall_curve_c270: [],
+      iron_fence_straight_h: [],
+      iron_fence_straight_v: [],
+      iron_fence_corner_tl: [],
+      iron_fence_corner_tr: [],
+      iron_fence_corner_br: [],
+      iron_fence_corner_bl: [],
+      stone_wall_straight_h: [],
+      stone_wall_straight_v: [],
+      stone_wall_corner_tl: [],
+      stone_wall_corner_tr: [],
+      stone_wall_corner_br: [],
+      stone_wall_corner_bl: [],
       pine_crooked: [],
       pine: [],
       oak: [],
@@ -177,8 +126,44 @@ function useMapParser() {
           const glowPos: Position3D = [pos[0], pos[1] + 0.15, pos[2]]
           lanternPositions.push(glowPos)
           positions.lantern_candle.push(pos)
-        } else if (char === 'x' || char === '#') {
-          parseWallsAndFences(char, positions, z, x, pos)
+        } else if (char === 'x') {
+          const hasN = level1[z - 1]?.[x] === 'x'
+          const hasS = level1[z + 1]?.[x] === 'x'
+          const hasW = level1[z]?.[x - 1] === 'x'
+          const hasE = level1[z]?.[x + 1] === 'x'
+
+          if (hasS && hasE) {
+            positions.iron_fence_corner_tl.push(pos)
+          } else if (hasS && hasW) {
+            positions.iron_fence_corner_tr.push(pos)
+          } else if (hasN && hasW) {
+            positions.iron_fence_corner_br.push(pos)
+          } else if (hasN && hasE) {
+            positions.iron_fence_corner_bl.push(pos)
+          } else if (hasN || hasS) {
+            positions.iron_fence_straight_v.push(pos)
+          } else {
+            positions.iron_fence_straight_h.push(pos)
+          }
+        } else if (char === '#') {
+          const hasN = level1[z - 1]?.[x] === '#'
+          const hasS = level1[z + 1]?.[x] === '#'
+          const hasW = level1[z]?.[x - 1] === '#'
+          const hasE = level1[z]?.[x + 1] === '#'
+
+          if (hasS && hasE) {
+            positions.stone_wall_corner_tl.push(pos)
+          } else if (hasS && hasW) {
+            positions.stone_wall_corner_tr.push(pos)
+          } else if (hasN && hasW) {
+            positions.stone_wall_corner_br.push(pos)
+          } else if (hasN && hasE) {
+            positions.stone_wall_corner_bl.push(pos)
+          } else if (hasN || hasS) {
+            positions.stone_wall_straight_v.push(pos)
+          } else {
+            positions.stone_wall_straight_h.push(pos)
+          }
         } else if (modelName === 'road') {
           positions.road.push([pos[0], 0.02, pos[2]])
         } else {
@@ -207,19 +192,21 @@ export function MapRenderer() {
         <CuboidCollider args={[mapWidth / 2, 0.5, mapHeight / 2]} />
       </RigidBody>
 
-      <Instancer model="iron_fence" positions={positions.iron_fence_h} collider="cuboid" />
-      <Instancer model="iron_fence" positions={positions.iron_fence_v} rotation={Math.PI / 2} collider="cuboid" />
-      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c0} collider="cuboid" />
-      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c90} rotation={Math.PI / 2} collider="cuboid" />
-      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c180} rotation={Math.PI} collider="cuboid" />
-      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c270} rotation={-Math.PI / 2} collider="cuboid" />
+      {/* Iron Fences */}
+      <Instancer model="iron_fence" positions={positions.iron_fence_straight_h} collider="cuboid" />
+      <Instancer model="iron_fence" positions={positions.iron_fence_straight_v} rotation={Math.PI / 2} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_corner_tl} rotation={[0, -Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_corner_tr} rotation={[0, 0, 0]} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_corner_br} rotation={[0, Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_corner_bl} rotation={[0, Math.PI, 0]} collider="cuboid" />
 
-      <Instancer model="stone_wall" positions={positions.stone_wall_h} collider="cuboid" />
-      <Instancer model="stone_wall" positions={positions.stone_wall_v} rotation={Math.PI / 2} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c0} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c90} rotation={Math.PI / 2} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c180} rotation={Math.PI} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c270} rotation={-Math.PI / 2} collider="cuboid" />
+      {/* Stone Walls */}
+      <Instancer model="stone_wall" positions={positions.stone_wall_straight_h} collider="cuboid" />
+      <Instancer model="stone_wall" positions={positions.stone_wall_straight_v} rotation={Math.PI / 2} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tl} rotation={[0, -Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tr} rotation={[0, 0, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_br} rotation={[0, Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_bl} rotation={[0, Math.PI, 0]} collider="cuboid" />
 
       <Instancer model="pine_crooked" positions={positions.pine_crooked} collider="hull" scale={1.1} randomRotation />
       <Instancer model="pine" positions={positions.pine} collider="hull" scale={1.2} randomRotation />
