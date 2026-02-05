@@ -9,7 +9,6 @@ import { useShadowTexture } from '../hooks/useShadowTexture'
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
   const shadowRef = useRef(null)
-  const playerGroupRef = useRef(null)
   const [pivot, setPivot] = useState(null)
   const [currentAction, setCurrentAction] = useState("idle")
   const { scene, camera } = useThree()
@@ -43,10 +42,10 @@ export default function HunterController() {
 
   const [, getKeyboardControls] = useKeyboardControls()
   const moveSpeed = 6
-  const jumpVelocity = 5
+  const jumpVelocity = 8
 
   useFrame(() => {
-    if (!rigidBodyRef.current || !pivot || !playerGroupRef.current) return
+    if (!rigidBodyRef.current || !pivot) return
     const player = myPlayer()
     if (!player) return
 
@@ -84,41 +83,26 @@ export default function HunterController() {
 
     const vel = rigidBodyRef.current.linvel()
 
-    const rayOrigin = new THREE.Vector3(pos.x, pos.y + 0.6, pos.z)
-    raycaster.current.set(rayOrigin, downVector.current)
-    raycaster.current.camera = camera
-    raycaster.current.near = 0.2
+    let targetY = vel.y
 
-    const hits = raycaster.current.intersectObjects(scene.children, true)
-    
-    const validHit = hits.find(hit => hit.object.type !== 'Sprite' && hit.distance > 0.2)
-
-    if (validHit && validHit.distance < 10) {
-      groundDistance.current = validHit.distance
-    } else {
-      groundDistance.current = Infinity
-    }
-
-    const isGrounded = groundDistance.current <= 0.7
-
-    if (jump && isGrounded) {
-      rigidBodyRef.current.setLinvel({ x: vel.x, y: jumpVelocity, z: vel.z }, true)
+    if (jump && groundDistance.current < 1.5) {
+      targetY = jumpVelocity
     }
 
     const isMoving = moveDir.lengthSq() > 0.001
     if (isMoving) {
       moveDir.normalize().multiplyScalar(moveSpeed)
-      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: vel.y, z: moveDir.z }, true)
+      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: targetY, z: moveDir.z }, true)
       const angle = Math.atan2(moveDir.x, moveDir.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
-      rigidBodyRef.current.setLinvel({ x: 0, y: vel.y, z: 0 }, true)
+      rigidBodyRef.current.setLinvel({ x: 0, y: targetY, z: 0 }, true)
     }
 
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
 
     let targetAnim = "idle"
-    if (!isGrounded) {
+    if (groundDistance.current > 1.5) {
       targetAnim = vel.y > 0 ? "jump" : "fall"
     } else {
       targetAnim = moveDir.lengthSq() > 0.001 ? "sprint" : "idle"
@@ -128,11 +112,26 @@ export default function HunterController() {
     }
 
     if (shadowRef.current) {
-      if (validHit && isGrounded) {
+      const rayOrigin = new THREE.Vector3(pos.x, pos.y + 0.6, pos.z)
+      raycaster.current.set(rayOrigin, downVector.current)
+      raycaster.current.camera = camera
+      raycaster.current.near = 0.1
+      
+      const intersects = raycaster.current.intersectObjects(scene.children, true)
+      
+      const validHit = intersects.find(hit => {
+        const obj = hit.object
+        if (obj.type === 'Sprite') return false
+        if (hit.distance < 0.3) return false
+        return true
+      })
+
+      if (validHit && validHit.distance < 10) {
+        groundDistance.current = validHit.distance
+        const dist = validHit.distance
         shadowRef.current.visible = true
         shadowRef.current.position.set(validHit.point.x, validHit.point.y + 0.02, validHit.point.z)
         
-        const dist = validHit.distance
         const scale = Math.max(0.3, 1 - (dist * 0.08))
         shadowRef.current.scale.setScalar(scale)
         
@@ -141,6 +140,7 @@ export default function HunterController() {
           shadowRef.current.material.opacity = opacity
         }
       } else {
+        groundDistance.current = Infinity
         shadowRef.current.visible = false
       }
     }
@@ -150,36 +150,34 @@ export default function HunterController() {
 
   return (
     <>
-      <group ref={playerGroupRef}>
-        <group ref={setPivot}>
-          <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
-        </group>
-
-        {pivot && <PointerLockControls camera={pivot} selector="#root" />}
-
-        <RigidBody 
-          ref={rigidBodyRef} 
-          colliders={false} 
-          type="dynamic" 
-          position={[0, 5, 0]} 
-          enabledRotations={[false, true, false]} 
-          lockRotations
-        >
-          <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-          <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
-          <primitive object={characterScene} scale={0.6} position={[0, -0.8, 0]} />
-        </RigidBody>
-
-        <mesh 
-          ref={shadowRef} 
-          rotation-x={-Math.PI / 2} 
-          position-y={0.02}
-          visible={false}
-        >
-          <planeGeometry args={[0.8, 0.8]} />
-          <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
-        </mesh>
+      <group ref={setPivot}>
+        <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
       </group>
+
+      {pivot && <PointerLockControls camera={pivot} selector="#root" />}
+
+      <RigidBody 
+        ref={rigidBodyRef} 
+        colliders={false} 
+        type="dynamic" 
+        position={[0, 5, 0]} 
+        enabledRotations={[false, true, false]} 
+        lockRotations
+      >
+        <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
+        <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
+        <primitive object={characterScene} scale={0.6} position={[0, -0.8, 0]} />
+      </RigidBody>
+
+      <mesh 
+        ref={shadowRef} 
+        rotation-x={-Math.PI / 2} 
+        position-y={0.02}
+        visible={false}
+      >
+        <planeGeometry args={[0.8, 0.8]} />
+        <meshBasicMaterial map={shadowTexture} transparent opacity={0.8} depthWrite={false} />
+      </mesh>
     </>
   )
 }
