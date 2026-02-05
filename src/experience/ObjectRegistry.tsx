@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect, type ReactNode } from 'react'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
 const MODEL_PATHS = {
@@ -50,7 +50,7 @@ interface ProcessedGLTF {
   lightsRemoved: number
 }
 
-function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
+function processGLTF(gltfScene: THREE.Group, name: string, texture: THREE.Texture): ProcessedGLTF {
   const lightsRemoved = { current: 0 }
 
   const processed = gltfScene.clone()
@@ -75,6 +75,8 @@ function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
           mat.name = `${name}-material`
         }
 
+        mat.map = texture
+        mat.color = new THREE.Color(0xffffff)
         mat.emissive = new THREE.Color(0x000000)
         mat.emissiveIntensity = 0
       }
@@ -84,7 +86,7 @@ function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
   return { scene: processed, lightsRemoved: lightsRemoved.current }
 }
 
-function extractMainGeometry(gltf: THREE.Group): { geometry: THREE.BufferGeometry | null; material: THREE.Material | null } {
+function extractMainGeometry(gltf: THREE.Group, texture: THREE.Texture): { geometry: THREE.BufferGeometry | null; material: THREE.Material | null } {
   const meshes: THREE.Mesh[] = []
 
   gltf.traverse((child) => {
@@ -96,13 +98,12 @@ function extractMainGeometry(gltf: THREE.Group): { geometry: THREE.BufferGeometr
   if (meshes.length > 0) {
     const firstMesh = meshes[0]
     const geometry = firstMesh.geometry.clone()
-    const material = firstMesh.material as THREE.Material
+    const material = firstMesh.material as THREE.MeshStandardMaterial
 
-    if (material) {
-      const mat = material as THREE.MeshStandardMaterial
-      mat.emissive = new THREE.Color(0x000000)
-      mat.emissiveIntensity = 0
-    }
+    material.map = texture
+    material.color = new THREE.Color(0xffffff)
+    material.emissive = new THREE.Color(0x000000)
+    material.emissiveIntensity = 0
 
     return { geometry, material }
   }
@@ -117,10 +118,12 @@ interface ObjectRegistryProps {
 function ModelLoader({
   name,
   path,
+  texture,
   onLoad,
 }: {
   name: ModelName
   path: string
+  texture: THREE.Texture
   onLoad: (data: ModelData) => void
 }) {
   const gltf = useGLTF(path)
@@ -129,13 +132,13 @@ function ModelLoader({
 
   useEffect(() => {
     if (!gltfScene) return
-    const result = processGLTF(gltfScene, name)
+    const result = processGLTF(gltfScene, name, texture)
     setProcessed(result)
-  }, [gltfScene, name])
+  }, [gltfScene, name, texture])
 
   useEffect(() => {
     if (processed) {
-      const { geometry, material } = extractMainGeometry(processed.scene)
+      const { geometry, material } = extractMainGeometry(processed.scene, texture)
       const data: ModelData = {
         scene: processed.scene,
         geometry,
@@ -145,7 +148,7 @@ function ModelLoader({
       }
       onLoad(data)
     }
-  }, [processed, name, onLoad])
+  }, [processed, name, texture, onLoad])
 
   return null
 }
@@ -153,6 +156,10 @@ function ModelLoader({
 export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   const [loadedModels, setLoadedModels] = useState<Record<string, ModelData>>({})
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: Object.keys(MODEL_PATHS).length })
+
+  const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
+  graveyardTx.colorSpace = THREE.SRGBColorSpace
+  graveyardTx.flipY = false
 
   const totalCount = Object.keys(MODEL_PATHS).length
   const isLoading = loadingProgress.loaded < totalCount
@@ -181,7 +188,7 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   return (
     <ObjectRegistryContext.Provider value={contextValue}>
       {modelEntries.map(([name, path]) => (
-        <ModelLoader key={name} name={name} path={path} onLoad={handleModelLoad} />
+        <ModelLoader key={name} name={name} path={path} texture={graveyardTx} onLoad={handleModelLoad} />
       ))}
       {children}
     </ObjectRegistryContext.Provider>
