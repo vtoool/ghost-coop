@@ -5,7 +5,9 @@ import * as THREE from 'three'
 const MODEL_PATHS = {
   iron_fence: '/models/environment/iron-fence.glb',
   iron_fence_border_gate: '/models/environment/iron-fence-border-gate.glb',
+  iron_fence_curve: '/models/environment/iron-fence-curve.glb',
   stone_wall: '/models/environment/stone-wall.glb',
+  stone_wall_curve: '/models/environment/stone-wall-curve.glb',
   pine_crooked: '/models/environment/pine-crooked.glb',
   pine: '/models/environment/pine.glb',
   oak: '/models/environment/oak.glb',
@@ -216,7 +218,9 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
 
 useGLTF.preload('/models/environment/iron-fence.glb')
 useGLTF.preload('/models/environment/iron-fence-border-gate.glb')
+useGLTF.preload('/models/environment/iron-fence-curve.glb')
 useGLTF.preload('/models/environment/stone-wall.glb')
+useGLTF.preload('/models/environment/stone-wall-curve.glb')
 useGLTF.preload('/models/environment/pine-crooked.glb')
 useGLTF.preload('/models/environment/pine.glb')
 useGLTF.preload('/models/environment/oak.glb')

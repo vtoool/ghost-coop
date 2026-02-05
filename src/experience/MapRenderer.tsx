@@ -62,9 +62,18 @@ function calculateGridPosition(x: number, z: number): [number, number, number] {
 }
 
 interface ModelPositions {
-  iron_fence: Position3D[]
+  iron_fence_h: Position3D[]
   iron_fence_v: Position3D[]
-  stone_wall: Position3D[]
+  iron_fence_curve_c0: Position3D[]
+  iron_fence_curve_c90: Position3D[]
+  iron_fence_curve_c180: Position3D[]
+  iron_fence_curve_c270: Position3D[]
+  stone_wall_h: Position3D[]
+  stone_wall_v: Position3D[]
+  stone_wall_curve_c0: Position3D[]
+  stone_wall_curve_c90: Position3D[]
+  stone_wall_curve_c180: Position3D[]
+  stone_wall_curve_c270: Position3D[]
   pine_crooked: Position3D[]
   pine: Position3D[]
   oak: Position3D[]
@@ -81,9 +90,18 @@ interface ModelPositions {
 function useMapParser() {
   return useMemo(() => {
     const positions: ModelPositions = {
-      iron_fence: [],
+      iron_fence_h: [],
       iron_fence_v: [],
-      stone_wall: [],
+      iron_fence_curve_c0: [],
+      iron_fence_curve_c90: [],
+      iron_fence_curve_c180: [],
+      iron_fence_curve_c270: [],
+      stone_wall_h: [],
+      stone_wall_v: [],
+      stone_wall_curve_c0: [],
+      stone_wall_curve_c90: [],
+      stone_wall_curve_c180: [],
+      stone_wall_curve_c270: [],
       pine_crooked: [],
       pine: [],
       oak: [],
@@ -111,14 +129,40 @@ function useMapParser() {
           lanternPositions.push(glowPos)
           positions.lantern_candle.push(pos)
         } else if (modelName === 'iron_fence') {
-          const hasVerticalNeighbor = 
-            level1[z - 1]?.[x] === 'x' || 
-            level1[z + 1]?.[x] === 'x'
-          
-          if (hasVerticalNeighbor) {
+          const hasN = level1[z - 1]?.[x] === 'x'
+          const hasS = level1[z + 1]?.[x] === 'x'
+          const hasW = level1[z]?.[x - 1] === 'x'
+          const hasE = level1[z]?.[x + 1] === 'x'
+
+          const cornerCount = (hasN ? 1 : 0) + (hasS ? 1 : 0) + (hasW ? 1 : 0) + (hasE ? 1 : 0)
+
+          if (cornerCount >= 2) {
+            if (hasS && hasE) positions.iron_fence_curve_c0.push(pos)
+            else if (hasS && hasW) positions.iron_fence_curve_c90.push(pos)
+            else if (hasN && hasW) positions.iron_fence_curve_c180.push(pos)
+            else if (hasN && hasE) positions.iron_fence_curve_c270.push(pos)
+          } else if ((hasN || hasS) && !hasW && !hasE) {
             positions.iron_fence_v.push(pos)
           } else {
-            positions.iron_fence.push(pos)
+            positions.iron_fence_h.push(pos)
+          }
+        } else if (modelName === 'stone_wall') {
+          const hasN = level1[z - 1]?.[x] === '#'
+          const hasS = level1[z + 1]?.[x] === '#'
+          const hasW = level1[z]?.[x - 1] === '#'
+          const hasE = level1[z]?.[x + 1] === '#'
+
+          const cornerCount = (hasN ? 1 : 0) + (hasS ? 1 : 0) + (hasW ? 1 : 0) + (hasE ? 1 : 0)
+
+          if (cornerCount >= 2) {
+            if (hasS && hasE) positions.stone_wall_curve_c0.push(pos)
+            else if (hasS && hasW) positions.stone_wall_curve_c90.push(pos)
+            else if (hasN && hasW) positions.stone_wall_curve_c180.push(pos)
+            else if (hasN && hasE) positions.stone_wall_curve_c270.push(pos)
+          } else if ((hasN || hasS) && !hasW && !hasE) {
+            positions.stone_wall_v.push(pos)
+          } else {
+            positions.stone_wall_h.push(pos)
           }
         } else if (modelName === 'road') {
           positions.road.push([pos[0], 0.02, pos[2]])
@@ -157,98 +201,33 @@ export function MapRenderer() {
         <CuboidCollider args={[mapWidth / 2, 0.5, mapHeight / 2]} />
       </RigidBody>
 
-      <Instancer
-        model="iron_fence"
-        positions={positions.iron_fence}
-        collider="cuboid"
-      />
+      {/* Iron Fences */}
+      <Instancer model="iron_fence" positions={positions.iron_fence_h} collider="cuboid" />
+      <Instancer model="iron_fence" positions={positions.iron_fence_v} rotation={Math.PI / 2} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c0} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c90} rotation={Math.PI / 2} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c180} rotation={Math.PI} collider="cuboid" />
+      <Instancer model="iron_fence_curve" positions={positions.iron_fence_curve_c270} rotation={-Math.PI / 2} collider="cuboid" />
 
-      <Instancer
-        model="iron_fence"
-        positions={positions.iron_fence_v}
-        rotation={[0, Math.PI / 2, 0]}
-        collider="cuboid"
-      />
+      {/* Stone Walls */}
+      <Instancer model="stone_wall" positions={positions.stone_wall_h} collider="cuboid" />
+      <Instancer model="stone_wall" positions={positions.stone_wall_v} rotation={Math.PI / 2} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c0} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c90} rotation={Math.PI / 2} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c180} rotation={Math.PI} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_curve_c270} rotation={-Math.PI / 2} collider="cuboid" />
 
-      <Instancer
-        model="stone_wall"
-        positions={positions.stone_wall}
-        collider="cuboid"
-      />
-
-      <Instancer
-        model="pine_crooked"
-        positions={positions.pine_crooked}
-        collider="hull"
-        scale={1.1}
-        randomRotation
-      />
-
-      <Instancer
-        model="pine"
-        positions={positions.pine}
-        collider="hull"
-        scale={1.2}
-        randomRotation
-      />
-
-      <Instancer
-        model="oak"
-        positions={positions.oak}
-        collider="hull"
-        scale={1.5}
-        randomRotation
-      />
-
-      <Instancer
-        model="gravestone_cross"
-        positions={positions.gravestone_cross}
-        collider="cuboid"
-      />
-
-      <Instancer
-        model="gravestone_round"
-        positions={positions.gravestone_round}
-        collider="cuboid"
-      />
-
-      <Instancer
-        model="gravestone_broken"
-        positions={positions.gravestone_broken}
-        collider="cuboid"
-      />
-
-      <Instancer
-        model="crypt"
-        positions={positions.crypt}
-        collider="hull"
-      />
-
-      <Instancer
-        model="bench"
-        positions={positions.bench}
-        collider="hull"
-      />
-
-      <Instancer
-        model="rocks"
-        positions={positions.rocks}
-        collider="hull"
-      />
-
-      <Instancer
-        model="lantern_candle"
-        positions={positions.lantern_candle}
-        collider="cuboid"
-      />
-
-      <Instancer
-        model="road"
-        positions={positions.road}
-        scale={1.05}
-        randomRotation={false}
-        collider={undefined}
-      />
+      <Instancer model="pine_crooked" positions={positions.pine_crooked} collider="hull" scale={1.1} randomRotation />
+      <Instancer model="pine" positions={positions.pine} collider="hull" scale={1.2} randomRotation />
+      <Instancer model="oak" positions={positions.oak} collider="hull" scale={1.5} randomRotation />
+      <Instancer model="gravestone_cross" positions={positions.gravestone_cross} collider="cuboid" />
+      <Instancer model="gravestone_round" positions={positions.gravestone_round} collider="cuboid" />
+      <Instancer model="gravestone_broken" positions={positions.gravestone_broken} collider="cuboid" />
+      <Instancer model="crypt" positions={positions.crypt} collider="hull" />
+      <Instancer model="bench" positions={positions.bench} collider="hull" />
+      <Instancer model="rocks" positions={positions.rocks} collider="hull" />
+      <Instancer model="lantern_candle" positions={positions.lantern_candle} collider="cuboid" />
+      <Instancer model="road" positions={positions.road} scale={1.05} randomRotation={false} collider={undefined} />
 
       {lanternPositions.map((pos, i) => (
         <GlowSprite key={`glow-${i}`} position={pos} />
