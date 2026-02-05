@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useTexture, Sprite } from '@react-three/drei'
 import * as THREE from 'three'
 import { myPlayer, useMultiplayerState, isHost } from 'playroomkit'
 
