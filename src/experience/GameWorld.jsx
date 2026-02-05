@@ -5,6 +5,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { Sparkles, Stats, PerformanceMonitor } from '@react-three/drei'
 import RoleManager from './RoleManager'
 import Environment from './Environment'
+import Ghost from './Ghost'
 import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
 
 /**
@@ -73,6 +74,9 @@ export default function GameWorld() {
 
       {/* Full Graveyard Environment */}
       <Environment />
+
+      {/* Ghost Entity */}
+      <Ghost />
 
       {/* Ghost Entity - Hidden (Ghost Moon placeholder removed) */}
       {/* <RigidBody type="kinematicPosition" position={[0, 3, 0]}>

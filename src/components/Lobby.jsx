@@ -306,7 +306,7 @@ function Lobby() {
             </span>
             <span className="text-[#F0F0F0]/50">|</span>
             <span className="text-[#F0F0F0]/70">
-              {amIHost ? 'You are in charge' : 'Waiting for Host...'}
+              {amIHost ? 'You are the Host' : 'Waiting for Host...'}
             </span>
           </div>
           {hostId && (

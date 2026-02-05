@@ -1,5 +1,6 @@
 import { PerspectiveCamera, OrthographicCamera } from '@react-three/drei'
 import HunterController from './HunterController'
+import OperatorHUD from '../components/OperatorHUD'
 
 /**
  * RoleManager - Role-based View Logic
@@ -36,8 +37,7 @@ export default function RoleManager({ roles, playerId }) {
           far={100}
           rotation={[-Math.PI / 2, 0, 0]}
         />
-        {/* Operator has no avatar - they are a ghost in the machine */}
-        {/* Hunter position is synced via Playroom state and can be rendered here as a marker */}
+        <OperatorHUD />
       </>
     )
   }
