@@ -59,6 +59,12 @@ function calculateGridPosition(x: number, z: number): [number, number, number] {
   return [posX, 0, posZ]
 }
 
+function pushWithOffset(bucket: Position3D[], x: number, z: number, offX: number, offZ: number) {
+  const worldX = (x * 1) - offsetX + (1 / 2) + offX
+  const worldZ = (z * 1) - offsetZ + (1 / 2) + offZ
+  bucket.push([worldX, 0, worldZ])
+}
+
 interface ModelPositions {
   iron_fence_straight_h: Position3D[]
   iron_fence_straight_v: Position3D[]
@@ -124,16 +130,16 @@ function useMapParser() {
 
         switch (char) {
           case '┌':
-            positions.stone_wall_corner_tl.push(pos)
+            pushWithOffset(positions.stone_wall_corner_tl, x, z, 0.35, 0.35)
             break
           case '┐':
-            positions.stone_wall_corner_tr.push(pos)
+            pushWithOffset(positions.stone_wall_corner_tr, x, z, -0.35, 0.35)
             break
           case '┘':
-            positions.stone_wall_corner_br.push(pos)
+            pushWithOffset(positions.stone_wall_corner_br, x, z, -0.35, -0.35)
             break
           case '└':
-            positions.stone_wall_corner_bl.push(pos)
+            pushWithOffset(positions.stone_wall_corner_bl, x, z, 0.35, -0.35)
             break
           case '|':
             positions.stone_wall_straight_v.push(pos)
@@ -142,16 +148,16 @@ function useMapParser() {
             positions.stone_wall_straight_h.push(pos)
             break
           case '1':
-            positions.iron_fence_corner_tl.push(pos)
+            pushWithOffset(positions.iron_fence_corner_tl, x, z, 0.3, 0.3)
             break
           case '2':
-            positions.iron_fence_corner_tr.push(pos)
+            pushWithOffset(positions.iron_fence_corner_tr, x, z, -0.3, 0.3)
             break
           case '3':
-            positions.iron_fence_corner_br.push(pos)
+            pushWithOffset(positions.iron_fence_corner_br, x, z, -0.3, -0.3)
             break
           case '4':
-            positions.iron_fence_corner_bl.push(pos)
+            pushWithOffset(positions.iron_fence_corner_bl, x, z, 0.3, -0.3)
             break
           case 'v':
             positions.iron_fence_straight_v.push(pos)
@@ -210,10 +216,10 @@ export function MapRenderer() {
       {/* Stone Walls */}
       <Instancer model="stone_wall" positions={positions.stone_wall_straight_h} collider="cuboid" />
       <Instancer model="stone_wall" positions={positions.stone_wall_straight_v} rotation={Math.PI / 2} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tl} rotation={[0, -Math.PI / 2, 0]} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tr} rotation={[0, 0, 0]} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_br} rotation={[0, Math.PI / 2, 0]} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_bl} rotation={[0, Math.PI, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tl} rotation={[0, 0, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tr} rotation={[0, -Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_br} rotation={[0, Math.PI, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_bl} rotation={[0, Math.PI / 2, 0]} collider="cuboid" />
 
       <Instancer model="pine_crooked" positions={positions.pine_crooked} collider="hull" scale={1.1} randomRotation />
       <Instancer model="pine" positions={positions.pine} collider="hull" scale={1.2} randomRotation />
@@ -225,7 +231,7 @@ export function MapRenderer() {
       <Instancer model="bench" positions={positions.bench} collider="hull" />
       <Instancer model="rocks" positions={positions.rocks} collider="hull" />
       <Instancer model="lantern_candle" positions={positions.lantern_candle} collider="cuboid" />
-      <Instancer model="road" positions={positions.road} scale={20} randomRotation={false} collider={undefined} />
+      <Instancer model="road" positions={positions.road} scale={60} randomRotation={false} collider={undefined} />
 
       {lanternPositions.map((pos, i) => (
         <GlowSprite key={`glow-${i}`} position={pos} />
