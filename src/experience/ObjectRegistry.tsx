@@ -173,7 +173,7 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   graveyardTx.colorSpace = THREE.SRGBColorSpace
   graveyardTx.flipY = false
 
-  const roadTx = useTexture('/models/environment/Textures/colormap_road.png')
+  const roadTx = useTexture('/models/environment/Textures/base_color_texture.png')
   roadTx.colorSpace = THREE.SRGBColorSpace
   roadTx.flipY = false
 
