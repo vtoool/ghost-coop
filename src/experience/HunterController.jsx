@@ -132,8 +132,6 @@ export default function HunterController() {
         
         if (obj.type === 'Sprite') continue
         
-        if (hit.distance < 0.5) continue
-        
         if (obj.name !== 'ground') continue
         
         if (hit.distance < closestGroundDist) {
