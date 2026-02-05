@@ -7,7 +7,7 @@ import { useObjectRegistry } from './ObjectRegistry'
 interface InstancerProps {
   model: string
   positions: number[][]
-  rotation?: number
+  rotation?: number | [number, number, number]
   scale?: number | [number, number, number]
   randomRotation?: boolean
   randomSeed?: number
@@ -53,9 +53,10 @@ export function Instancer({
   const instances: RigidBodyInstance[] = useMemo(() => {
     const scaleArray = Array.isArray(scale) ? scale : [scale, scale, scale]
     return validPositions.map((pos, index) => {
-      const instanceRotation = randomRotation
+      const instanceRotationRaw = randomRotation
         ? seededRandom(randomSeed + index) * Math.PI * 2
         : rotation
+      const instanceRotation = Array.isArray(instanceRotationRaw) ? instanceRotationRaw[1] : instanceRotationRaw
 
       return {
         key: `${index}-${pos[0]}-${pos[1]}-${pos[2]}-${instanceRotation.toFixed(3)}`,

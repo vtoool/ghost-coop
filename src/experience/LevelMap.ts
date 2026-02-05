@@ -1,22 +1,22 @@
 export type MapLegend = Record<string, string>;
 
 export const mapLegend: MapLegend = {
+  '=': 'road',
   '#': 'stone_wall',
   'x': 'iron_fence',
-  'O': 'oak',
-  'T': 'pine',
-  't': 'pine_crooked',
   'S': 'crypt',
   'B': 'bench',
   'L': 'lantern_candle',
+  'T': 'pine',
+  't': 'pine_crooked',
+  'O': 'oak',
   '+': 'gravestone_cross',
   'o': 'gravestone_round',
   '-': 'gravestone_broken',
-  '=': 'road',
   '.': 'void',
-} as const;
+}
 
-export const level1: readonly string[] = [
+export const level1 = [
   '###########################',
   '#T..o..x..T..===..T..x..o.#',
   '#..+...x.....===.....x...+T',
@@ -30,10 +30,10 @@ export const level1: readonly string[] = [
   '#..+.x....T..=+=..T....x.+#',
   '#o..x........===........x.#',
   '#T.x...o..T..===..T..o...x#',
-  '#.x...-......===......-...x',
+  '#.x...-......===......-...x#',
   '#T....T...t..===..t...T...#',
-  '#..+.....o...===...o.....+.#',
-  '#o....S......===......S..o.#',
+  '#..+.....o...===...o.....+#',
+  '#o....S......===......S..o#',
   '#T..t.....T..===..T.....t.#',
   '###########################',
 ] as const;

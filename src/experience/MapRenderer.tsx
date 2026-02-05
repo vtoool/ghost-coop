@@ -63,7 +63,7 @@ function calculateGridPosition(x: number, z: number): [number, number, number] {
 
 interface ModelPositions {
   iron_fence: Position3D[]
-  iron_fence_rotated: Position3D[]
+  iron_fence_v: Position3D[]
   stone_wall: Position3D[]
   pine_crooked: Position3D[]
   pine: Position3D[]
@@ -82,7 +82,7 @@ function useMapParser() {
   return useMemo(() => {
     const positions: ModelPositions = {
       iron_fence: [],
-      iron_fence_rotated: [],
+      iron_fence_v: [],
       stone_wall: [],
       pine_crooked: [],
       pine: [],
@@ -116,7 +116,7 @@ function useMapParser() {
             level1[z + 1]?.[x] === 'x'
           
           if (hasVerticalNeighbor) {
-            positions.iron_fence_rotated.push(pos)
+            positions.iron_fence_v.push(pos)
           } else {
             positions.iron_fence.push(pos)
           }
@@ -165,8 +165,8 @@ export function MapRenderer() {
 
       <Instancer
         model="iron_fence"
-        positions={positions.iron_fence_rotated}
-        rotation={Math.PI / 2}
+        positions={positions.iron_fence_v}
+        rotation={[0, Math.PI / 2, 0]}
         collider="cuboid"
       />
 
@@ -245,8 +245,8 @@ export function MapRenderer() {
       <Instancer
         model="road"
         positions={positions.road}
-        scale={25}
-        randomRotation={true}
+        scale={1.35}
+        randomRotation={false}
         collider={undefined}
       />
 
