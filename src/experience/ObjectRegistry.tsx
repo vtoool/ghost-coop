@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect, type ReactNode } from 'react'
-import { useGLTF, useTexture } from '@react-three/drei'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
 const MODEL_PATHS = {
@@ -19,21 +19,6 @@ const MODEL_PATHS = {
 
 type ModelName = keyof typeof MODEL_PATHS
 
-const MODEL_CONFIG: Record<ModelName, { useTexture: boolean; color?: string }> = {
-  iron_fence: { useTexture: true },
-  iron_fence_border_gate: { useTexture: true },
-  stone_wall: { useTexture: true },
-  pine_crooked: { useTexture: false, color: '#2d5a2d' },
-  pine: { useTexture: false, color: '#1a4a1a' },
-  gravestone_cross: { useTexture: true },
-  gravestone_round: { useTexture: true },
-  gravestone_broken: { useTexture: true },
-  crypt: { useTexture: true },
-  lantern_candle: { useTexture: true },
-  bench: { useTexture: false, color: '#5c4033' },
-  rocks: { useTexture: false, color: '#4a4a4a' },
-}
-
 interface ModelData {
   scene: THREE.Group
   geometry: THREE.BufferGeometry | null
@@ -44,7 +29,6 @@ interface ModelData {
 
 interface ObjectRegistryContextValue {
   models: Readonly<Record<string, ModelData>>
-  graveyardTexture: THREE.Texture | null
   isLoading: boolean
   loadedCount: number
   totalCount: number
@@ -66,12 +50,7 @@ interface ProcessedGLTF {
   lightsRemoved: number
 }
 
-function processGLTF(
-  gltfScene: THREE.Group,
-  name: string,
-  texture: THREE.Texture | null,
-  config: { useTexture: boolean; color?: string }
-): ProcessedGLTF {
+function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
   const lightsRemoved = { current: 0 }
 
   const processed = gltfScene.clone()
@@ -98,13 +77,6 @@ function processGLTF(
 
         mat.emissive = new THREE.Color(0x000000)
         mat.emissiveIntensity = 0
-
-        if (config.useTexture && texture && !mat.map) {
-          mat.map = texture
-        } else if (config.color) {
-          mat.map = null
-          mat.color = new THREE.Color(config.color)
-        }
       }
     }
   })
@@ -112,11 +84,7 @@ function processGLTF(
   return { scene: processed, lightsRemoved: lightsRemoved.current }
 }
 
-function extractMainGeometry(
-  gltf: THREE.Group,
-  texture: THREE.Texture | null,
-  config: { useTexture: boolean; color?: string }
-): { geometry: THREE.BufferGeometry | null; material: THREE.Material | null } {
+function extractMainGeometry(gltf: THREE.Group): { geometry: THREE.BufferGeometry | null; material: THREE.Material | null } {
   const meshes: THREE.Mesh[] = []
 
   gltf.traverse((child) => {
@@ -134,15 +102,6 @@ function extractMainGeometry(
       const mat = material as THREE.MeshStandardMaterial
       mat.emissive = new THREE.Color(0x000000)
       mat.emissiveIntensity = 0
-
-      if (config.useTexture && texture && !mat.map) {
-        mat.map = texture
-        mat.needsUpdate = true
-      } else if (config.color) {
-        mat.map = null
-        mat.color = new THREE.Color(config.color)
-        mat.needsUpdate = true
-      }
     }
 
     return { geometry, material }
@@ -158,14 +117,10 @@ interface ObjectRegistryProps {
 function ModelLoader({
   name,
   path,
-  texture,
-  config,
   onLoad,
 }: {
   name: ModelName
   path: string
-  texture: THREE.Texture | null
-  config: { useTexture: boolean; color?: string }
   onLoad: (data: ModelData) => void
 }) {
   const gltf = useGLTF(path)
@@ -174,13 +129,13 @@ function ModelLoader({
 
   useEffect(() => {
     if (!gltfScene) return
-    const result = processGLTF(gltfScene, name, texture, config)
+    const result = processGLTF(gltfScene, name)
     setProcessed(result)
-  }, [gltfScene, name, texture, config])
+  }, [gltfScene, name])
 
   useEffect(() => {
     if (processed) {
-      const { geometry, material } = extractMainGeometry(processed.scene, texture, config)
+      const { geometry, material } = extractMainGeometry(processed.scene)
       const data: ModelData = {
         scene: processed.scene,
         geometry,
@@ -190,7 +145,7 @@ function ModelLoader({
       }
       onLoad(data)
     }
-  }, [processed, name, texture, config, onLoad])
+  }, [processed, name, onLoad])
 
   return null
 }
@@ -198,12 +153,6 @@ function ModelLoader({
 export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   const [loadedModels, setLoadedModels] = useState<Record<string, ModelData>>({})
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: Object.keys(MODEL_PATHS).length })
-
-  const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
-  if (graveyardTx) {
-    graveyardTx.colorSpace = THREE.SRGBColorSpace
-    graveyardTx.flipY = false
-  }
 
   const totalCount = Object.keys(MODEL_PATHS).length
   const isLoading = loadingProgress.loaded < totalCount
@@ -219,13 +168,12 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   const contextValue: ObjectRegistryContextValue = useMemo(
     () => ({
       models: loadedModels,
-      graveyardTexture: graveyardTx,
       isLoading,
       loadedCount: loadingProgress.loaded,
       totalCount,
       getModel: (name: string) => loadedModels[name],
     }),
-    [loadedModels, graveyardTx, isLoading, loadingProgress.loaded, totalCount]
+    [loadedModels, isLoading, loadingProgress.loaded, totalCount]
   )
 
   const modelEntries = Object.entries(MODEL_PATHS) as [ModelName, string][]
@@ -233,14 +181,7 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   return (
     <ObjectRegistryContext.Provider value={contextValue}>
       {modelEntries.map(([name, path]) => (
-        <ModelLoader
-          key={name}
-          name={name}
-          path={path}
-          texture={graveyardTx}
-          config={MODEL_CONFIG[name]}
-          onLoad={handleModelLoad}
-        />
+        <ModelLoader key={name} name={name} path={path} onLoad={handleModelLoad} />
       ))}
       {children}
     </ObjectRegistryContext.Provider>
@@ -261,4 +202,4 @@ useGLTF.preload('/models/environment/bench.glb')
 useGLTF.preload('/models/environment/rocks.glb')
 
 export type { ModelData, ObjectRegistryProps }
-export { MODEL_PATHS, MODEL_CONFIG, type ModelName }
+export { MODEL_PATHS, type ModelName }
