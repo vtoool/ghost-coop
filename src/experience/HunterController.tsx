@@ -15,7 +15,8 @@ import {
   CAMERA_DISTANCE,
   HERO_LIGHT_COLOR,
   HERO_LIGHT_INTENSITY,
-  HERO_LIGHT_DISTANCE
+  HERO_LIGHT_DISTANCE,
+  DEBUG_GROUND_DETECTION
 } from '../constants/GameBalance'
 
 // Animation action names from the character GLB
@@ -155,10 +156,14 @@ export default function HunterController(): ReactElement {
     // Get current velocity
     const vel = rigidBodyRef.current.linvel()
 
-    // Ground detection - tighten threshold to prevent flying
-    const playerFeet = pos.y
+    // Ground detection - account for mesh offset from collider
+    const playerFeet = pos.y - 0.8
     const isGrounded = playerFeet <= (GROUND_LEVEL + GROUND_THRESHOLD_UPPER) && 
                        playerFeet >= (GROUND_LEVEL - GROUND_THRESHOLD_LOWER)
+
+    if (DEBUG_GROUND_DETECTION) {
+      console.log(`[Jump] pos.y=${pos.y.toFixed(2)}, feet=${playerFeet.toFixed(2)}, vel.y=${vel.y.toFixed(2)}, grounded=${isGrounded}, canJump=${canJump.current}`)
+    }
 
     let targetY = vel.y
 
@@ -166,11 +171,17 @@ export default function HunterController(): ReactElement {
     if (jump && isGrounded && canJump.current) {
       targetY = JUMP_VELOCITY
       canJump.current = false
+      if (DEBUG_GROUND_DETECTION) {
+        console.log(`[Jump] JUMP! targetY=${targetY}`)
+      }
     }
 
     // Reset jump when grounded
     if (isGrounded && !canJump.current) {
       canJump.current = true
+      if (DEBUG_GROUND_DETECTION) {
+        console.log(`[Jump] LANDED! canJump=true`)
+      }
     }
 
     wasGrounded.current = isGrounded

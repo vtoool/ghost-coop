@@ -23,8 +23,8 @@ import { ObjectRegistry } from './ObjectRegistry'
 export default function GameWorld(): ReactElement {
   const [lowQuality, setLowQuality] = useState<boolean>(false)
 
-  // Enable performance logging
-  usePerformanceLogger({ enabled: true, interval: 2000 })
+  // Enable performance logging (disabled for production)
+  usePerformanceLogger({ enabled: false, interval: 2000 })
 
   // Get roles from Playroom state
   const [roles] = useMultiplayerState<Roles>('roles', { hunter: null, operator: null })

@@ -12,8 +12,8 @@ export const ROTATION_SPEED = 0.1 as const;
 
 // Ground Detection
 export const GROUND_LEVEL = -0.5 as const;
-export const GROUND_THRESHOLD_UPPER = 0.15 as const;  // How high above ground level is "grounded"
-export const GROUND_THRESHOLD_LOWER = 0.1 as const;   // How far below ground level is "grounded"
+export const GROUND_THRESHOLD_UPPER = 0.6 as const;  // How high above ground level is "grounded"
+export const GROUND_THRESHOLD_LOWER = 0.5 as const;   // How far below ground level is "grounded"
 
 // Physics
 export const GRAVITY_SCALE = 1 as const;
@@ -38,4 +38,4 @@ export const HERO_LIGHT_DISTANCE = 20 as const;
 
 // Debug
 export const DEBUG_LANTERNS = false as const;
-export const DEBUG_GROUND_DETECTION = false as const;
+export const DEBUG_GROUND_DETECTION = true as const;
