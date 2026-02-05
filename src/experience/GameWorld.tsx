@@ -4,6 +4,7 @@ import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { Stats, PerformanceMonitor, Sparkles } from '@react-three/drei'
 import RoleManager from './RoleManager'
 import RemotePlayer from './RemotePlayer'
+import Profiler from './Profiler'
 import Environment from './Environment'
 import Ghost from './Ghost'
 import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
@@ -40,6 +41,7 @@ export default function GameWorld(): ReactElement {
       <>
         {/* Performance Monitoring - Stats positioned in top-left corner */}
         <Stats className="stats" />
+        <Profiler />
         <PerformanceMonitor 
           onDecline={handlePerformanceDecline}
           onIncline={handlePerformanceIncline}
@@ -55,6 +57,9 @@ export default function GameWorld(): ReactElement {
           position={[10, 20, 10]}
           intensity={0.05}
           color="#0a0a1a"
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+          shadow-bias={-0.0001}
         />
         <object3D position={[100, -100, 100]} />
         
