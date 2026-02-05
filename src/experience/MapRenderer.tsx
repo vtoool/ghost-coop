@@ -47,7 +47,7 @@ function GlowSprite({ position }: GlowSpriteProps) {
   )
 }
 
-const gridSize = 2
+const gridSize = 1
 const width = level1[0].length
 const height = level1.length
 const mapWidth = width * gridSize
@@ -245,7 +245,7 @@ export function MapRenderer() {
       <Instancer
         model="road"
         positions={positions.road}
-        scale={1.35}
+        scale={1.05}
         randomRotation={false}
         collider={undefined}
       />
