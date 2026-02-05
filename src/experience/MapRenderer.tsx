@@ -154,14 +154,30 @@ function useMapParser() {
 
           const cornerCount = (hasN ? 1 : 0) + (hasS ? 1 : 0) + (hasW ? 1 : 0) + (hasE ? 1 : 0)
 
+          console.log(`[Wall] x=${x}, z=${z}, hasN=${hasN}, hasS=${hasS}, hasW=${hasW}, hasE=${hasE}, count=${cornerCount}`)
+
           if (cornerCount >= 2) {
-            if (hasS && hasE) positions.stone_wall_curve_c0.push(pos)
-            else if (hasS && hasW) positions.stone_wall_curve_c90.push(pos)
-            else if (hasN && hasW) positions.stone_wall_curve_c180.push(pos)
-            else if (hasN && hasE) positions.stone_wall_curve_c270.push(pos)
+            if (hasS && hasE) {
+              console.log(`  → Curve SE (c0)`)
+              positions.stone_wall_curve_c0.push(pos)
+            } else if (hasS && hasW) {
+              console.log(`  → Curve SW (c90)`)
+              positions.stone_wall_curve_c90.push(pos)
+            } else if (hasN && hasW) {
+              console.log(`  → Curve NW (c180)`)
+              positions.stone_wall_curve_c180.push(pos)
+            } else if (hasN && hasE) {
+              console.log(`  → Curve NE (c270)`)
+              positions.stone_wall_curve_c270.push(pos)
+            } else {
+              console.log(`  → FALLBACK to curve_c0 (3+ neighbors)`)
+              positions.stone_wall_curve_c0.push(pos)
+            }
           } else if ((hasN || hasS) && !hasW && !hasE) {
+            console.log(`  → Vertical`)
             positions.stone_wall_v.push(pos)
           } else {
+            console.log(`  → Horizontal`)
             positions.stone_wall_h.push(pos)
           }
         } else if (modelName === 'road') {
@@ -182,6 +198,23 @@ function useMapParser() {
         }
       })
     }
+
+    console.log('🧱 Wall Bucket Census:', {
+      Horizontal: positions.stone_wall_h?.length || 0,
+      Vertical: positions.stone_wall_v?.length || 0,
+      Curve_0: positions.stone_wall_curve_c0?.length || 0,
+      Curve_90: positions.stone_wall_curve_c90?.length || 0,
+      Curve_180: positions.stone_wall_curve_c180?.length || 0,
+      Curve_270: positions.stone_wall_curve_c270?.length || 0,
+    })
+    console.log('🚧 Fence Bucket Census:', {
+      Horizontal: positions.iron_fence_h?.length || 0,
+      Vertical: positions.iron_fence_v?.length || 0,
+      Curve_0: positions.iron_fence_curve_c0?.length || 0,
+      Curve_90: positions.iron_fence_curve_c90?.length || 0,
+      Curve_180: positions.iron_fence_curve_c180?.length || 0,
+      Curve_270: positions.iron_fence_curve_c270?.length || 0,
+    })
 
     return { positions, lanternPositions }
   }, [])
