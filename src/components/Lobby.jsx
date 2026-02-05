@@ -117,34 +117,26 @@ function Lobby() {
   useEffect(() => {
     // CASE 1: Vacancy - No host assigned, claim it if I'm here
     if (!hostId && me?.id) {
-      console.log('[Lobby] Leader Election: Claiming host vacancy. My ID:', me.id)
       setHostId(me.id, true) // reliable=true
       return
     }
-    
+
     // CASE 2: Abdication (Migration) - Host left, remaining player claims
     if (hostId && !players.find(p => p.id === hostId)) {
       // Host is gone! Check if I'm the remaining player
       if (players.length > 0 && players[0]?.id === me?.id) {
-        console.log('[Lobby] Leader Election: Host departed. Migrating to me:', me.id)
         setHostId(me.id, true) // reliable=true
       }
       return
     }
-    
-    // Log current state for debugging
-    console.log('[Lobby] Leader Election: Host ID =', hostId, 'My ID =', me?.id, 'amIHost =', hostId === me?.id)
   }, [hostId, players, me?.id, setHostId])
   
   // Role Assignment Effect - Only runs if I'm the immutable host
   useEffect(() => {
     // Only Host manages roles to avoid conflicts
     if (!amIHost) {
-      console.log('[Lobby] Not host, skipping role management. amIHost:', amIHost)
       return
     }
-    
-    console.log('[Lobby] Host authority active. Players:', players.length, 'Roles:', roles)
     
     // Find other player (if exists)
     const otherPlayer = players.find(p => p.id !== me.id)
@@ -158,27 +150,23 @@ function Lobby() {
         (roles.operator !== me.id && roles.operator !== otherPlayerId)
       
       if (needsAssignment) {
-        console.log('[Lobby] Auto-assigning: Host=Operator, Joiner=Hunter')
         setRoles({
           operator: me.id,
           hunter: otherPlayerId
         })
       }
     }
-    
+
     // CASE B: Solo Play - Assign self as BOTH Hunter AND Operator (FORCE SOLO MODE)
     if (players.length === 1 && (!roles.hunter || !roles.operator)) {
-      console.log('[Lobby] Solo mode: Assigning self as BOTH Hunter and Operator')
       setRoles({ hunter: me.id, operator: me.id })
     }
-    
+
     // CASE C: Clear departed player roles
     if (roles.hunter && !players.find(p => p.id === roles.hunter)) {
-      console.log('[Lobby] Hunter left, clearing role')
       setRoles(prev => ({ ...prev, hunter: null }))
     }
     if (roles.operator && !players.find(p => p.id === roles.operator)) {
-      console.log('[Lobby] Operator left, clearing role')
       setRoles(prev => ({ ...prev, operator: null }))
     }
     
@@ -186,22 +174,18 @@ function Lobby() {
   
   // Handle name submission
   const handleJoin = () => {
-    console.log('[Lobby] handleJoin clicked, nameInput:', nameInput)
     if (!nameInput.trim()) {
-      console.log('[Lobby] No name entered, returning')
       return
     }
-    
+
     const profile = { name: nameInput.trim() }
-    console.log('[Lobby] Setting profile:', profile)
-    
+
     // Set in Playroom state (for multiplayer sync) - reliable=true
     me.setState('profile', profile, true)
     me.setState('ready', false, true)
-    
+
     // Persist to localStorage
     setStoredProfile(profile)
-    console.log('[Lobby] Profile set successfully')
   }
   
   // Handle leaving room
@@ -220,8 +204,7 @@ function Lobby() {
   // Swap roles function (Host only)
   const swapRoles = () => {
     if (!amIHost) return
-    
-    console.log('[Lobby] Swapping roles')
+
     const newRoles = {
       hunter: roles.operator,
       operator: roles.hunter

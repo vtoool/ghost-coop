@@ -75,36 +75,8 @@ export default function GameWorld() {
       {/* Full Graveyard Environment */}
       <Environment />
 
-      {/* Ghost Entity */}
+      {/* Ghost Entity - controlled by host */}
       <Ghost />
-
-      {/* Ghost Entity - Hidden (Ghost Moon placeholder removed) */}
-      {/* <RigidBody type="kinematicPosition" position={[0, 3, 0]}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.8, 32, 32]} />
-          <meshStandardMaterial 
-            color="#00F0FF" 
-            emissive="#00F0FF" 
-            emissiveIntensity={0.8}
-            transparent
-            opacity={0.9}
-          />
-        </mesh>
-      </RigidBody> */}
-      
-      {/* Ghost glow effect - Hidden */}
-      {/* <pointLight position={[0, 3, 0]} intensity={2} color="#00F0FF" distance={10} /> */}
-
-      {/* Hunter position marker for Operator view - Hidden (Orange Circle placeholder removed) */}
-      {/* {isOperator && hunterPlayer && (
-        <group position={[hunterPos.x, hunterPos.y, hunterPos.z]}>
-          <mesh position={[0, 0.5, 0]}>
-            <cylinderGeometry args={[0.3, 0.3, 0.1, 16]} />
-            <meshStandardMaterial color="#FF6B35" emissive="#FF6B35" emissiveIntensity={0.5} />
-          </mesh>
-          <pointLight intensity={1} color="#FF6B35" distance={5} />
-        </group>
-      )} */}
 
       {/* Floating Embers */}
       <Sparkles count={lowQuality ? 50 : 100} scale={[20, 10, 20]} size={2} speed={0.2} color="#ffaa44" />

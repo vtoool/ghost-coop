@@ -1,22 +1,16 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { myPlayer, useMultiplayerState, isHost } from 'playroomkit'
+import { useMultiplayerState, isHost } from 'playroomkit'
 
-export default function Ghost({ isOperator = false }) {
+export default function Ghost() {
   const meshRef = useRef()
   const glowRef = useRef()
   const [targetPos, setTargetPos] = useState({ x: 0, y: 1.5, z: 0 })
-  const ghostPos = useMultiplayerState('ghostPos', { x: 0, y: 1.5, z: 0 })
-  const isGhostPlayer = useRef(false)
+  const [ghostPos, setGhostPos] = useMultiplayerState('ghostPos', { x: 0, y: 1.5, z: 0 })
 
-  useEffect(() => {
-    const player = myPlayer()
-    const roles = player?.getState('roles')
-    if (roles?.ghost === player?.id) {
-      isGhostPlayer.current = true
-    }
-  }, [])
+  // Host controls ghost movement (CPU mode)
+  const isGhostController = isHost()
 
   const ghostTexture = useMemo(() => {
     const canvas = document.createElement('canvas')
@@ -38,46 +32,47 @@ export default function Ghost({ isOperator = false }) {
     return texture
   }, [])
 
-  useFrame((state, delta) => {
-    if (isGhostPlayer.current && meshRef.current) {
-      const time = state.clock.getElapsedTime()
-      const bobY = Math.sin(time * 2) * 0.1
-      const swayX = Math.sin(time * 1.5) * 0.15
-      const swayZ = Math.cos(time * 1.2) * 0.15
-
-      const newX = targetPos.x + swayX
-      const newY = targetPos.y + bobY
-      const newZ = targetPos.z + swayZ
-
-      meshRef.current.position.set(newX, newY, newZ)
-      meshRef.current.rotation.y += delta * 0.5
-
-      myPlayer().setState('ghostPos', { x: newX, y: newY, z: newZ })
-    } else if (meshRef.current) {
+  useFrame((state) => {
+    if (meshRef.current) {
       meshRef.current.position.set(ghostPos.x, ghostPos.y, ghostPos.z)
       const time = state.clock.getElapsedTime()
       meshRef.current.position.y += Math.sin(time * 2) * 0.1
     }
 
-    if (glowRef.current) {
+    if (glowRef.current && meshRef.current) {
       glowRef.current.position.copy(meshRef.current.position)
     }
   })
 
+  // Host ghost wandering AI - updates target position periodically
   useEffect(() => {
-    if (isGhostPlayer.current) {
-      const interval = setInterval(() => {
-        const angle = Math.random() * Math.PI * 2
-        const distance = 3 + Math.random() * 5
-        setTargetPos(prev => ({
-          x: prev.x + Math.cos(angle) * distance * 0.3,
-          y: 1.5,
-          z: prev.z + Math.sin(angle) * distance * 0.3
-        }))
-      }, 3000)
-      return () => clearInterval(interval)
-    }
-  }, [])
+    if (!isGhostController) return
+
+    const interval = setInterval(() => {
+      const angle = Math.random() * Math.PI * 2
+      const distance = 3 + Math.random() * 5
+      setTargetPos({
+        x: Math.cos(angle) * distance,
+        y: 1.5,
+        z: Math.sin(angle) * distance
+      })
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [isGhostController])
+
+  // Move ghost toward target position (host only)
+  useEffect(() => {
+    if (!isGhostController) return
+
+    const interval = setInterval(() => {
+      setGhostPos(prev => ({
+        x: prev.x + (targetPos.x - prev.x) * 0.02,
+        y: targetPos.y,
+        z: prev.z + (targetPos.z - prev.z) * 0.02
+      }))
+    }, 50)
+    return () => clearInterval(interval)
+  }, [isGhostController, targetPos, setGhostPos])
 
   return (
     <group>

@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Test artifacts
+test-results/
+test-screenshots/
+playwright-report/
+screenshot-*.png
+AUDIT_*.md

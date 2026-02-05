@@ -5,6 +5,17 @@ import { RigidBody, CapsuleCollider } from '@react-three/rapier'
 import { myPlayer } from 'playroomkit'
 import * as THREE from 'three'
 import { useShadowTexture } from '../hooks/useShadowTexture'
+import {
+  MOVE_SPEED,
+  JUMP_VELOCITY,
+  GROUND_LEVEL,
+  GROUND_THRESHOLD_UPPER,
+  GROUND_THRESHOLD_LOWER,
+  CAMERA_DISTANCE,
+  HERO_LIGHT_COLOR,
+  HERO_LIGHT_INTENSITY,
+  HERO_LIGHT_DISTANCE
+} from '../constants/GameBalance'
 
 export default function HunterController() {
   const rigidBodyRef = useRef(null)
@@ -17,6 +28,15 @@ export default function HunterController() {
   const groundDistance = useRef(Infinity)
   const wasGrounded = useRef(false)
   const canJump = useRef(true)
+
+  // Pre-allocated vectors to avoid GC pressure
+  const moveDir = useRef(new THREE.Vector3())
+  const viewDir = useRef(new THREE.Vector3())
+  const viewRight = useRef(new THREE.Vector3())
+  const upVector = useRef(new THREE.Vector3(0, 1, 0))
+  const joyForward = useRef(new THREE.Vector3())
+  const joyRight = useRef(new THREE.Vector3())
+  const rayOrigin = useRef(new THREE.Vector3())
 
   const { scene: characterScene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, characterScene)
@@ -43,8 +63,6 @@ export default function HunterController() {
   }, [currentAction, actions])
 
   const [, getKeyboardControls] = useKeyboardControls()
-  const moveSpeed = 3
-  const jumpVelocity = 3
 
   useFrame(() => {
     if (!rigidBodyRef.current || !pivot) return
@@ -62,53 +80,50 @@ export default function HunterController() {
       if (j) joystick = j
     }
 
-    const moveDir = new THREE.Vector3()
-    const viewDir = new THREE.Vector3()
-    pivot.getWorldDirection(viewDir)
-    viewDir.y = 0 
-    viewDir.normalize()
-    viewDir.negate()
+    moveDir.current.set(0, 0, 0)
+    pivot.getWorldDirection(viewDir.current)
+    viewDir.current.y = 0
+    viewDir.current.normalize()
+    viewDir.current.negate()
 
-    const viewRight = new THREE.Vector3()
-    viewRight.crossVectors(viewDir, new THREE.Vector3(0, 1, 0))
+    viewRight.current.crossVectors(viewDir.current, upVector.current)
 
-    if (forward) moveDir.add(viewDir)
-    if (backward) moveDir.sub(viewDir)
-    if (right) moveDir.add(viewRight)
-    if (left) moveDir.sub(viewRight)
-    
+    if (forward) moveDir.current.add(viewDir.current)
+    if (backward) moveDir.current.sub(viewDir.current)
+    if (right) moveDir.current.add(viewRight.current)
+    if (left) moveDir.current.sub(viewRight.current)
+
     if (joystick.isActive) {
-      const joyForward = viewDir.clone().multiplyScalar(joystick.y)
-      const joyRight = viewRight.clone().multiplyScalar(joystick.x)
-      moveDir.add(joyForward).add(joyRight)
+      joyForward.current.copy(viewDir.current).multiplyScalar(joystick.y)
+      joyRight.current.copy(viewRight.current).multiplyScalar(joystick.x)
+      moveDir.current.add(joyForward.current).add(joyRight.current)
     }
 
     const vel = rigidBodyRef.current.linvel()
 
-    const groundLevel = -0.5
+    // Ground detection - tighten threshold to prevent flying
     const playerFeet = pos.y
-    const isGrounded = Math.abs(playerFeet - groundLevel) < 0.3
+    const isGrounded = playerFeet <= (GROUND_LEVEL + GROUND_THRESHOLD_UPPER) && playerFeet >= (GROUND_LEVEL - GROUND_THRESHOLD_LOWER)
 
     let targetY = vel.y
 
     if (jump && isGrounded && canJump.current) {
-      targetY = jumpVelocity
+      targetY = JUMP_VELOCITY
       canJump.current = false
-      console.log('[Jump] JUMP! velocity=' + jumpVelocity + ', canJump=false')
     }
 
-    if (isGrounded && !canJump.current && vel.y >= -0.1 && vel.y <= 0.1) {
-      console.log('[Jump] Landed! canJump=true')
+    // Reset jump when grounded (simpler logic, no velocity check)
+    if (isGrounded && !canJump.current) {
       canJump.current = true
     }
 
     wasGrounded.current = isGrounded
 
-    const isMoving = moveDir.lengthSq() > 0.001
+    const isMoving = moveDir.current.lengthSq() > 0.001
     if (isMoving) {
-      moveDir.normalize().multiplyScalar(moveSpeed)
-      rigidBodyRef.current.setLinvel({ x: moveDir.x, y: targetY, z: moveDir.z }, true)
-      const angle = Math.atan2(moveDir.x, moveDir.z)
+      moveDir.current.normalize().multiplyScalar(MOVE_SPEED)
+      rigidBodyRef.current.setLinvel({ x: moveDir.current.x, y: targetY, z: moveDir.current.z }, true)
+      const angle = Math.atan2(moveDir.current.x, moveDir.current.z)
       rigidBodyRef.current.setRotation({ x: 0, y: Math.sin(angle/2), z: 0, w: Math.cos(angle/2) }, true)
     } else {
       rigidBodyRef.current.setLinvel({ x: 0, y: targetY, z: 0 }, true)
@@ -118,7 +133,7 @@ export default function HunterController() {
 
     let targetAnim = "idle"
     if (isGrounded) {
-      targetAnim = moveDir.lengthSq() > 0.001 ? "sprint" : "idle"
+      targetAnim = moveDir.current.lengthSq() > 0.001 ? "sprint" : "idle"
     } else {
       targetAnim = vel.y > 0 ? "jump" : "fall"
     }
@@ -127,8 +142,8 @@ export default function HunterController() {
     }
 
     if (shadowRef.current) {
-      const rayOrigin = new THREE.Vector3(pos.x, pos.y - 0.5, pos.z)
-      raycaster.current.set(rayOrigin, downVector.current)
+      rayOrigin.current.set(pos.x, pos.y - 0.5, pos.z)
+      raycaster.current.set(rayOrigin.current, downVector.current)
       raycaster.current.camera = camera
       raycaster.current.near = 0.1
       
@@ -179,7 +194,7 @@ export default function HunterController() {
   return (
     <>
       <group ref={setPivot}>
-        <PerspectiveCamera makeDefault position={[0, 0, 3.5]} />
+        <PerspectiveCamera makeDefault position={[0, 0, CAMERA_DISTANCE]} />
       </group>
 
       {pivot && <PointerLockControls camera={pivot} selector="#root" />}
@@ -193,7 +208,7 @@ export default function HunterController() {
         lockRotations
       >
         <CapsuleCollider args={[0.5, 0.3]} position={[0, 0, 0]} />
-        <pointLight color="#ffaa44" intensity={8} distance={20} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
+        <pointLight color={HERO_LIGHT_COLOR} intensity={HERO_LIGHT_INTENSITY} distance={HERO_LIGHT_DISTANCE} decay={2} castShadow={false} position={[0, 1.5, 0.5]} />
         <primitive object={characterScene} scale={0.6} position={[0, -0.8, 0]} />
       </RigidBody>
 

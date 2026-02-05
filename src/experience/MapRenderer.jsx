@@ -4,7 +4,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
 
-const DEBUG_LANTERNS = true
+const DEBUG_LANTERNS = false
 
 let glowTextureCache = null
 
