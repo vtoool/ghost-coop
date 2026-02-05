@@ -103,13 +103,13 @@ function parseWallsAndFences(
     } else if (hasW && hasE && !hasN && !hasS) {
       positions.iron_fence_h.push(pos)
     } else if (hasS && hasE) {
-      positions.iron_fence_curve_c0.push(pos)
-    } else if (hasS && hasW) {
-      positions.iron_fence_curve_c90.push(pos)
-    } else if (hasN && hasW) {
-      positions.iron_fence_curve_c180.push(pos)
-    } else if (hasN && hasE) {
       positions.iron_fence_curve_c270.push(pos)
+    } else if (hasS && hasW) {
+      positions.iron_fence_curve_c0.push(pos)
+    } else if (hasN && hasW) {
+      positions.iron_fence_curve_c90.push(pos)
+    } else if (hasN && hasE) {
+      positions.iron_fence_curve_c180.push(pos)
     } else if (hasN || hasS) {
       positions.iron_fence_v.push(pos)
     } else {
@@ -121,13 +121,13 @@ function parseWallsAndFences(
     } else if (hasW && hasE && !hasN && !hasS) {
       positions.stone_wall_h.push(pos)
     } else if (hasS && hasE) {
-      positions.stone_wall_curve_c0.push(pos)
-    } else if (hasS && hasW) {
-      positions.stone_wall_curve_c90.push(pos)
-    } else if (hasN && hasW) {
-      positions.stone_wall_curve_c180.push(pos)
-    } else if (hasN && hasE) {
       positions.stone_wall_curve_c270.push(pos)
+    } else if (hasS && hasW) {
+      positions.stone_wall_curve_c0.push(pos)
+    } else if (hasN && hasW) {
+      positions.stone_wall_curve_c90.push(pos)
+    } else if (hasN && hasE) {
+      positions.stone_wall_curve_c180.push(pos)
     } else if (hasN || hasS) {
       positions.stone_wall_v.push(pos)
     } else {
