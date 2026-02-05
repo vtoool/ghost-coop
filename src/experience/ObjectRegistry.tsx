@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect, type ReactNode } from 'react'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
 const MODEL_PATHS = {
@@ -29,6 +29,7 @@ interface ModelData {
 
 interface ObjectRegistryContextValue {
   models: Readonly<Record<string, ModelData>>
+  graveyardTexture: THREE.Texture | null
   isLoading: boolean
   loadedCount: number
   totalCount: number
@@ -50,7 +51,11 @@ interface ProcessedGLTF {
   lightsRemoved: number
 }
 
-function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
+function processGLTF(
+  gltfScene: THREE.Group,
+  name: string,
+  texture: THREE.Texture | null
+): ProcessedGLTF {
   const lightsRemoved = { current: 0 }
 
   const processed = gltfScene.clone()
@@ -79,10 +84,16 @@ function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
           mat.forEach((m) => {
             m.emissive = new THREE.Color(0x000000)
             m.emissiveIntensity = 0
+            if (texture && m.map === null) {
+              m.map = texture
+            }
           })
         } else {
           mat.emissive = new THREE.Color(0x000000)
           mat.emissiveIntensity = 0
+          if (texture && mat.map === null) {
+            mat.map = texture
+          }
         }
       }
     }
@@ -91,23 +102,34 @@ function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
   return { scene: processed, lightsRemoved: lightsRemoved.current }
 }
 
-function extractMainGeometry(gltf: THREE.Group): { geometry: THREE.BufferGeometry | null; material: THREE.Material | null } {
+function extractMainGeometry(
+  gltf: THREE.Group,
+  texture: THREE.Texture | null
+): { geometry: THREE.BufferGeometry | null; material: THREE.Material | null } {
   const meshes: THREE.Mesh[] = []
-  
+
   gltf.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
       meshes.push(child as THREE.Mesh)
     }
   })
-  
+
   if (meshes.length > 0) {
     const firstMesh = meshes[0]
     const geometry = firstMesh.geometry.clone()
     const material = firstMesh.material as THREE.Material
-    
+
+    if (material) {
+      const mat = material as THREE.MeshStandardMaterial
+      if (texture && !mat.map) {
+        mat.map = texture
+        mat.needsUpdate = true
+      }
+    }
+
     return { geometry, material }
   }
-  
+
   return { geometry: null, material: null }
 }
 
@@ -115,20 +137,30 @@ interface ObjectRegistryProps {
   children: ReactNode
 }
 
-function ModelLoader({ name, path, onLoad }: { name: ModelName; path: string; onLoad: (data: ModelData) => void }) {
+function ModelLoader({
+  name,
+  path,
+  texture,
+  onLoad,
+}: {
+  name: ModelName
+  path: string
+  texture: THREE.Texture | null
+  onLoad: (data: ModelData) => void
+}) {
   const gltf = useGLTF(path)
   const gltfScene = gltf.scene
   const [processed, setProcessed] = useState<ProcessedGLTF | null>(null)
 
   useEffect(() => {
     if (!gltfScene) return
-    const result = processGLTF(gltfScene, name)
+    const result = processGLTF(gltfScene, name, texture)
     setProcessed(result)
-  }, [gltfScene, name])
+  }, [gltfScene, name, texture])
 
   useEffect(() => {
     if (processed) {
-      const { geometry, material } = extractMainGeometry(processed.scene)
+      const { geometry, material } = extractMainGeometry(processed.scene, texture)
       const data: ModelData = {
         scene: processed.scene,
         geometry,
@@ -138,7 +170,7 @@ function ModelLoader({ name, path, onLoad }: { name: ModelName; path: string; on
       }
       onLoad(data)
     }
-  }, [processed, name, onLoad])
+  }, [processed, name, texture, onLoad])
 
   return null
 }
@@ -146,10 +178,16 @@ function ModelLoader({ name, path, onLoad }: { name: ModelName; path: string; on
 export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
   const [loadedModels, setLoadedModels] = useState<Record<string, ModelData>>({})
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: Object.keys(MODEL_PATHS).length })
-  
+
+  const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
+  if (graveyardTx) {
+    graveyardTx.colorSpace = THREE.SRGBColorSpace
+    graveyardTx.flipY = false
+  }
+
   const totalCount = Object.keys(MODEL_PATHS).length
   const isLoading = loadingProgress.loaded < totalCount
-  
+
   const handleModelLoad = (data: ModelData) => {
     setLoadedModels((prev) => {
       if (prev[data.name]) return prev
@@ -157,26 +195,25 @@ export function ObjectRegistry({ children }: ObjectRegistryProps): ReactNode {
       return { ...prev, [data.name]: data }
     })
   }
-  
-  const contextValue: ObjectRegistryContextValue = useMemo(() => ({
-    models: loadedModels,
-    isLoading,
-    loadedCount: loadingProgress.loaded,
-    totalCount,
-    getModel: (name: string) => loadedModels[name],
-  }), [loadedModels, isLoading, loadingProgress.loaded, totalCount])
-  
+
+  const contextValue: ObjectRegistryContextValue = useMemo(
+    () => ({
+      models: loadedModels,
+      graveyardTexture: graveyardTx,
+      isLoading,
+      loadedCount: loadingProgress.loaded,
+      totalCount,
+      getModel: (name: string) => loadedModels[name],
+    }),
+    [loadedModels, graveyardTx, isLoading, loadingProgress.loaded, totalCount]
+  )
+
   const modelEntries = Object.entries(MODEL_PATHS) as [ModelName, string][]
-  
+
   return (
     <ObjectRegistryContext.Provider value={contextValue}>
       {modelEntries.map(([name, path]) => (
-        <ModelLoader
-          key={name}
-          name={name}
-          path={path}
-          onLoad={handleModelLoad}
-        />
+        <ModelLoader key={name} name={name} path={path} texture={graveyardTx} onLoad={handleModelLoad} />
       ))}
       {children}
     </ObjectRegistryContext.Provider>

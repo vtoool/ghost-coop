@@ -143,41 +143,9 @@ export const mapLegend = {
 
 ### Auto-Tiling Strategy
 
-**Location:** `src/experience/MapRenderer.jsx`
+**Location:** `src/experience/MapRenderer.tsx`
 
-The floor procedurally generates two tile types:
-
-1. **Edges (Rounded):** `block-grass.glb` from Platformer Kit
-2. **Centers (Square):** `block-grass-square.glb` from Nature Kit
-
-```javascript
-const isEdge = x === 0 || x === width - 1 || z === 0 || z === height - 1
-const model = isEdge ? roundedClone : squareClone
-```
-
-### Texture Unification
-
-Different Kenney kits use different texture atlases:
-
-| Kit | Model | Texture Method |
-|-----|-------|----------------|
-| Platformer | `block-grass.glb` | `colormap_platformer.png` (UVs aligned) |
-| Nature | `block-grass-square.glb` | **Solid hex color** `#63a73c` |
-| Graveyard | Props (fences, graves) | `colormap_graveyard.png` |
-
-**Why Solid Color for Nature Blocks:**
-The Nature Kit's UV mapping doesn't align with the Platformer texture atlas. Applying the texture results in black/glitchy rendering. Solution: create a fresh `MeshStandardMaterial` with hex color.
-
-```javascript
-// ✅ CORRECT — Solid color for Nature blocks
-child.material = new THREE.MeshStandardMaterial({
-  color: '#63a73c',
-  roughness: 0.8,
-})
-
-// ❌ WRONG — Texture causes black rendering
-child.material.map = platformerTx
-```
+The floor is a simple green platform with instanced props placed procedurally.
 
 ### Grid Configuration
 
@@ -187,7 +155,7 @@ const offsetX = width * gridSize / 2  // Center the map horizontally
 const offsetZ = height * gridSize / 2
 ```
 
-**Floor Y Position:** `-1` (sits below props at `y: 0`)
+**Floor Y Position:** `-0.5` (center of the ground box)
 
 ---
 
@@ -223,48 +191,27 @@ const handleDevStartHunter = () => {
 
 | Asset Type | Pattern | Example |
 |------------|---------|---------|
-| Floor (rounded) | `block-grass.glb` | Platformer Kit |
-| Floor (square) | `block-grass-square.glb` | Nature Kit (converted) |
 | Props | `{name}.glb` | `iron-fence.glb`, `crypt.glb` |
 | Characters | `character-{name}.glb` | `character-male-a.glb` |
-| Textures | `colormap_{kit}.png` | `colormap_platformer.png` |
+| Textures | `colormap_{kit}.png` | `colormap_graveyard.png` |
 
-### Model Conversion
+### Environment Texture Settings
 
-To add new floor blocks from Kenney kits:
-
-1. Export GLB from Kenney (or convert OBJ→GLB)
-2. Place in `/public/models/environment/`
-3. Name following convention: `{block-type}.glb`
-4. Test texture alignment:
-   - If UVs align → use texture map
-   - If UVs misaligned → use solid hex color `#63a73c`
-
-### Texture Settings
+All environment props use the graveyard texture atlas:
 
 ```javascript
-const platformerTx = useTexture('/models/environment/Textures/colormap_platformer.png')
-platformerTx.colorSpace = THREE.SRGBColorSpace
-platformerTx.flipY = false
+const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
+graveyardTx.colorSpace = THREE.SRGBColorSpace
+graveyardTx.flipY = false
 ```
 
-**Important:** Platformer textures use `flipY: false`. Graveyard textures also use `flipY: false`.
+**Important:** Graveyard textures use `flipY: false`.
 
 ---
 
 ## 🐛 Known Quirks & Fixes
 
-### 1. Nature Kit Texture Mismatch
-
-**Symptom:** Square grass blocks render black
-
-**Fix:** Use solid hex color `#63a73c` instead of texture mapping
-
-**Code:** See `MapRenderer.jsx` → `squareClone` useMemo
-
----
-
-### 2. Shadow Acne
+### 1. Shadow Acne
 
 **Symptom:** Character shows stripey shadow artifacts
 
@@ -274,13 +221,23 @@ platformerTx.flipY = false
 
 ---
 
-### 3. Rounded Edge Gaps
+### 2. Ground Detection
 
-**Symptom:** Star-shaped gaps between rounded Platformer blocks
+**Symptom:** Character stuck in jump animation or can't jump
 
-**Fix:** Reduce `gridSize` from 2 to 1.75 (0.25 unit overlap)
+**Fix:** Widen ground thresholds in `GameBalance.ts`
 
-**Code:** `const gridSize = 1.75` in `MapRenderer.jsx`
+**Code:** `GROUND_THRESHOLD_UPPER = 0.6`, `GROUND_THRESHOLD_LOWER = 0.5`
+
+---
+
+### 3. GLTF Embedded Lights
+
+**Symptom:** Models have unexpected lights/emissive glow
+
+**Fix:** ObjectRegistry automatically removes embedded GLTF lights
+
+**Code:** See `ObjectRegistry.tsx` → `processGLTF` function
 
 ---
 

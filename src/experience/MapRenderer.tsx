@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useTexture } from '@react-three/drei'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
@@ -135,13 +134,6 @@ function useMapParser() {
 }
 
 export function MapRenderer() {
-  const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
-
-  if (graveyardTx) {
-    graveyardTx.colorSpace = THREE.SRGBColorSpace
-    graveyardTx.flipY = false
-  }
-
   const { positions, lanternPositions } = useMapParser()
 
   return (
