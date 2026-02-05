@@ -85,20 +85,20 @@ export default function HunterController() {
 
     const vel = rigidBodyRef.current.linvel()
 
-    const isGrounded = groundDistance.current < 2.0 && groundDistance.current > 0.1
+    const groundLevel = -0.5
+    const playerFeet = pos.y
+    const isGrounded = Math.abs(playerFeet - groundLevel) < 0.3
 
     let targetY = vel.y
 
     if (jump && isGrounded && canJump.current) {
       targetY = jumpVelocity
       canJump.current = false
-      console.log('[Jump] JUMP! velocity=' + jumpVelocity + ', canJump=false (land to reset)')
-    } else if (!jump) {
-      console.log('[Jump] Space released, canJump=' + canJump.current)
+      console.log('[Jump] JUMP! velocity=' + jumpVelocity + ', canJump=false')
     }
 
-    if (isGrounded && !canJump.current) {
-      console.log('[Jump] Landed! canJump=true (ready to jump again)')
+    if (isGrounded && !canJump.current && vel.y >= -0.1 && vel.y <= 0.1) {
+      console.log('[Jump] Landed! canJump=true')
       canJump.current = true
     }
 
