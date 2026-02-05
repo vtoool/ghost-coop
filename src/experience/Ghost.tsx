@@ -1,13 +1,16 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
+import type { ReactElement } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useMultiplayerState, isHost } from 'playroomkit'
+import type { GhostPosition } from '../types/game.types'
 
-export default function Ghost() {
-  const meshRef = useRef()
-  const glowRef = useRef()
-  const [targetPos, setTargetPos] = useState({ x: 0, y: 1.5, z: 0 })
-  const [ghostPos, setGhostPos] = useMultiplayerState('ghostPos', { x: 0, y: 1.5, z: 0 })
+export default function Ghost(): ReactElement {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const glowRef = useRef<THREE.Sprite>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
+  const [targetPos, setTargetPos] = useState<GhostPosition>({ x: 0, y: 1.5, z: 0 })
+  const [ghostPos, setGhostPos] = useMultiplayerState<GhostPosition>('ghostPos', { x: 0, y: 1.5, z: 0 })
 
   // Host controls ghost movement (CPU mode)
   const isGhostController = isHost()
@@ -17,6 +20,8 @@ export default function Ghost() {
     canvas.width = 128
     canvas.height = 128
     const ctx = canvas.getContext('2d')
+
+    if (!ctx) return new THREE.CanvasTexture(canvas)
 
     const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
     gradient.addColorStop(0, 'rgba(0, 240, 255, 0.9)')
@@ -42,6 +47,10 @@ export default function Ghost() {
     if (glowRef.current && meshRef.current) {
       glowRef.current.position.copy(meshRef.current.position)
     }
+
+    if (lightRef.current && meshRef.current) {
+      lightRef.current.position.copy(meshRef.current.position)
+    }
   })
 
   // Host ghost wandering AI - updates target position periodically
@@ -65,7 +74,7 @@ export default function Ghost() {
     if (!isGhostController) return
 
     const interval = setInterval(() => {
-      setGhostPos(prev => ({
+      setGhostPos((prev: GhostPosition) => ({
         x: prev.x + (targetPos.x - prev.x) * 0.02,
         y: targetPos.y,
         z: prev.z + (targetPos.z - prev.z) * 0.02
@@ -98,7 +107,7 @@ export default function Ghost() {
       </sprite>
 
       <pointLight
-        ref={glowRef}
+        ref={lightRef}
         color="#00f0ff"
         intensity={2}
         distance={6}

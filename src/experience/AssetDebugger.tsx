@@ -1,10 +1,17 @@
 import { useEffect, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import type { Group } from 'three'
 
-export function AssetDebugger() {
-  const { scene } = useGLTF('/models/environment/block-grass-square.glb')
-  const ref = useRef()
+interface GLTFResult {
+  scene: THREE.Group;
+  nodes: Record<string, THREE.Object3D>;
+  materials: Record<string, THREE.Material>;
+}
+
+export const AssetDebugger: React.FC = () => {
+  const { scene } = useGLTF('/models/environment/block-grass-square.glb') as GLTFResult
+  const ref = useRef<Group>(null)
 
   useEffect(() => {
     if (!scene) return
@@ -15,9 +22,10 @@ export function AssetDebugger() {
     console.log("🔍 DEBUG: Square Block Size:", size)
     console.log("📍 DEBUG: Square Block Center:", box.getCenter(new THREE.Vector3()))
 
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.material = new THREE.MeshBasicMaterial({
+    scene.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh
+        mesh.material = new THREE.MeshBasicMaterial({
             color: 0xff0000,
             wireframe: true
         })

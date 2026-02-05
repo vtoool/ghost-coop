@@ -1,5 +1,7 @@
 // Legend maps ASCII characters to GLB filename stems
-export const mapLegend = {
+export type MapLegend = Record<string, string>;
+
+export const mapLegend: MapLegend = {
   '#': 'iron-fence',
   '=': 'iron-fence-border-gate',
   '|': 'stone-wall',
@@ -12,10 +14,10 @@ export const mapLegend = {
   'L': 'lantern-candle',
   'B': 'bench',
   'R': 'rocks',
-}
+} as const;
 
 // 20x20 Graveyard Layout
-export const level1 = [
+export const level1: readonly string[] = [
   "####################",
   "#^...++..L..++...^.#",
   "#...*..*...*..*....#",
@@ -35,4 +37,4 @@ export const level1 = [
   "#..................#",
   "#^.......=.......^.#",
   "####################",
-]
+] as const;

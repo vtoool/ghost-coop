@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { myPlayer, usePlayersList, useMultiplayerState } from 'playroomkit'
+import type { PlayerRole } from '../types/game.types'
 
 /**
  * DebugOverlay - Real-time Connection State Monitor
@@ -13,12 +14,13 @@ import { myPlayer, usePlayersList, useMultiplayerState } from 'playroomkit'
  * - usePlayersList().length
  * - Current Game Phase
  * - Player Role (hunter/operator)
- * 
- * @param {Object} props
- * @param {string} props.myRole - The player's role: 'hunter', 'operator', or 'spectator'
  */
-function DebugOverlay({ myRole = 'spectator' }) {
-  const [isVisible, setIsVisible] = useState(true)
+interface DebugOverlayProps {
+  myRole?: PlayerRole;
+}
+
+const DebugOverlay: React.FC<DebugOverlayProps> = ({ myRole = null }) => {
+  const [isVisible, setIsVisible] = useState<boolean>(true)
   
   // Get reactive data from Playroom hooks
   const players = usePlayersList()
@@ -26,22 +28,22 @@ function DebugOverlay({ myRole = 'spectator' }) {
   const me = myPlayer()
   
   // Derived values - computed fresh on each render
-  const playerId = me?.id || 'N/A'
-  const playerCount = players.length
+  const playerId: string = me?.id || 'N/A'
+  const playerCount: number = players.length
   
   // Determine game phase
-  let gamePhase = 'WELCOME'
+  let gamePhase: 'WELCOME' | 'LOBBY' | 'GAME' = 'WELCOME'
   if (gameStart) {
     gamePhase = 'GAME'
   } else {
-    const myProfile = me?.getState('profile')
+    const myProfile = me?.getState<{ name: string }>('profile')
     if (myProfile?.name) {
       gamePhase = 'LOBBY'
     }
   }
   
   // Get profile name for display
-  const myProfileName = me?.getState('profile')?.name || 'Not Set'
+  const myProfileName: string = me?.getState<{ name: string }>('profile')?.name || 'Not Set'
   
   if (!isVisible) return null
   

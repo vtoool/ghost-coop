@@ -1,12 +1,12 @@
+import type { ReactElement } from 'react'
 import { useState } from 'react'
-import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
-import { RigidBody } from '@react-three/rapier'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { Sparkles, Stats, PerformanceMonitor } from '@react-three/drei'
+import { useMultiplayerState, myPlayer } from 'playroomkit'
+import { Stats, PerformanceMonitor, Sparkles } from '@react-three/drei'
 import RoleManager from './RoleManager'
 import Environment from './Environment'
 import Ghost from './Ghost'
 import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
+import type { Roles } from '../types/game.types'
 
 /**
  * GameWorld - The 3D Scene
@@ -19,45 +19,40 @@ import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
  * - Ghost entity that both players interact with
  * - Hunter position synced to Operator view
  */
-export default function GameWorld() {
-  const [lowQuality, setLowQuality] = useState(false)
+export default function GameWorld(): ReactElement {
+  const [lowQuality, setLowQuality] = useState<boolean>(false)
 
   // Enable performance logging
   usePerformanceLogger({ enabled: true, interval: 2000 })
 
   // Get roles from Playroom state
-  const [roles] = useMultiplayerState('roles', { hunter: null, operator: null })
+  const [roles] = useMultiplayerState<Roles>('roles', { hunter: null, operator: null })
   const player = myPlayer()
-  const players = usePlayersList()
-  
-  // Determine this player's role
-  const _isOperator = roles?.operator === player?.id
-  
-  // Get Hunter's synced position for Operator view (reserved for Phase 3)
-  const _hunterPlayer = players.find(p => p.id === roles?.hunter)
-  const _hunterPos = _hunterPlayer?.getState('pos') || { x: 0, y: 2, z: 0 }
+
+  const handlePerformanceDecline = (): void => {
+    console.log('[PerformanceMonitor] Quality degraded - reducing effects')
+    setLowQuality(true)
+  }
+
+  const handlePerformanceIncline = (): void => {
+    console.log('[PerformanceMonitor] Quality restored')
+    setLowQuality(false)
+  }
 
   return (
     <>
       {/* Performance Monitoring - Stats positioned in top-left corner */}
-      <Stats className="stats" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 9999 }} />
+      <Stats className="stats" />
       <PerformanceMonitor 
-        onDecline={() => {
-          console.log('[PerformanceMonitor] Quality degraded - reducing effects')
-          setLowQuality(true)
-        }}
-        onIncline={() => {
-          console.log('[PerformanceMonitor] Quality restored')
-          setLowQuality(false)
-        }}
-        smoothin={0.1}
+        onDecline={handlePerformanceDecline}
+        onIncline={handlePerformanceIncline}
       />
 
       {/* Background Color for Mist Effect - Deep Midnight Blue */}
       <color attach="background" args={['#0a0a12']} />
 
       {/* Lighting - Deep Blue Moonlight with Hemisphere Base */}
-      <hemisphereLight skyColor="#2a2a35" groundColor="#050505" intensity={0.5} />
+      <hemisphereLight args={['#2a2a35', '#050505', 0.5]} />
       <ambientLight intensity={0.1} />
       <directionalLight
         position={[10, 20, 10]}

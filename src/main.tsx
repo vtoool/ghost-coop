@@ -2,8 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { insertCoin, myPlayer, isHost } from 'playroomkit'
 import './index.css'
-import App from './App.jsx'
-import { getStoredProfile } from './utils/playerStorage.js'
+import App from './App'
+import { getStoredProfile } from './utils/playerStorage'
 
 /**
  * NETWORK GATE PATTERN - Phase 1 Stability Fix
@@ -21,7 +21,12 @@ import { getStoredProfile } from './utils/playerStorage.js'
 const MAX_WAIT_TIME = 15000 // 15 seconds max wait
 const CHECK_INTERVAL = 100  // Check every 100ms
 
-async function waitForPlayerObject() {
+interface Player {
+  id: string;
+  setState: (key: string, value: unknown, reliable?: boolean) => void;
+}
+
+async function waitForPlayerObject(): Promise<Player> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now()
     
@@ -32,7 +37,7 @@ async function waitForPlayerObject() {
         // Verify player object exists AND has an id
         if (player && player.id) {
           console.log('[Gatekeeper] Player object confirmed:', player.id)
-          resolve(player)
+          resolve(player as Player)
           return
         }
         
@@ -47,7 +52,7 @@ async function waitForPlayerObject() {
       } catch (error) {
         // Check timeout
         if (Date.now() - startTime > MAX_WAIT_TIME) {
-          reject(new Error('Timeout waiting for player object: ' + error.message))
+          reject(new Error('Timeout waiting for player object: ' + (error as Error).message))
           return
         }
         
@@ -60,7 +65,7 @@ async function waitForPlayerObject() {
   })
 }
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   console.log('[Gatekeeper] Starting Network Gate...')
   
   try {
@@ -95,7 +100,12 @@ async function bootstrap() {
     
     // Step 5: NOW it's safe to render React
     console.log('[Gatekeeper] Network gate open - rendering React...')
-    createRoot(document.getElementById('root')).render(
+    const rootElement = document.getElementById('root')
+    if (!rootElement) {
+      throw new Error('Root element not found')
+    }
+    
+    createRoot(rootElement).render(
       <StrictMode>
         <App />
       </StrictMode>,
@@ -124,7 +134,7 @@ async function bootstrap() {
           <div>
             <h1 style="color: #ff4444; margin-bottom: 16px; font-family: 'JetBrains Mono', monospace;">Connection Error</h1>
             <p style="color: #F0F0F0; margin-bottom: 8px;">Failed to connect to the spectral plane.</p>
-            <p style="color: #888; font-size: 14px; margin-top: 8px;">${error.message}</p>
+            <p style="color: #888; font-size: 14px; margin-top: 8px;">${(error as Error).message}</p>
             <button onclick="window.location.reload()" style="
               margin-top: 24px;
               padding: 12px 24px;

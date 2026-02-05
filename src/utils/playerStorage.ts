@@ -1,17 +1,19 @@
 // Player Profile Persistence Utility
 // Saves/restores player name to localStorage for cross-session persistence
 
+import type { PlayerProfile } from '../types/game.types'
+
 const STORAGE_KEY = 'ecto-busters-player-profile'
 
 /**
  * Get stored player profile from localStorage
- * @returns {Object|null} The stored profile or null if not found
+ * @returns The stored profile or null if not found
  */
-export const getStoredProfile = () => {
+export const getStoredProfile = (): PlayerProfile | null => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      return JSON.parse(stored)
+      return JSON.parse(stored) as PlayerProfile
     }
   } catch (error) {
     console.error('Failed to read profile from localStorage:', error)
@@ -21,9 +23,9 @@ export const getStoredProfile = () => {
 
 /**
  * Save player profile to localStorage
- * @param {Object} profile - The profile object to save (e.g., { name: 'PlayerName' })
+ * @param profile - The profile object to save (e.g., { name: 'PlayerName' })
  */
-export const setStoredProfile = (profile) => {
+export const setStoredProfile = (profile: PlayerProfile): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
   } catch (error) {
@@ -35,7 +37,7 @@ export const setStoredProfile = (profile) => {
  * Clear stored player profile from localStorage
  * Call this when user explicitly leaves the room
  */
-export const clearStoredProfile = () => {
+export const clearStoredProfile = (): void => {
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch (error) {

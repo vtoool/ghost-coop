@@ -6,14 +6,14 @@ import { level1, mapLegend } from './LevelMap'
 
 const DEBUG_LANTERNS = false
 
-let glowTextureCache = null
+let glowTextureCache: THREE.CanvasTexture | null = null
 
-function getGlowTexture() {
+function getGlowTexture(): THREE.CanvasTexture {
   if (!glowTextureCache) {
     const canvas = document.createElement('canvas')
     canvas.width = 128
     canvas.height = 128
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d')!
     const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
     gradient.addColorStop(0, 'rgba(255, 170, 68, 1)')
     gradient.addColorStop(0.3, 'rgba(255, 170, 68, 0.5)')
@@ -26,7 +26,13 @@ function getGlowTexture() {
   return glowTextureCache
 }
 
-function GlowSprite({ position }) {
+type Position3D = [number, number, number]
+
+interface GlowSpriteProps {
+  position: Position3D
+}
+
+function GlowSprite({ position }: GlowSpriteProps) {
   const texture = useMemo(() => getGlowTexture(), [])
   return (
     <sprite position={position} scale={[0.8, 0.8, 1]}>
@@ -41,14 +47,21 @@ function GlowSprite({ position }) {
   )
 }
 
-function MapTile({ name, position, texture, onLanternDetected }) {
+interface MapTileProps {
+  name: string
+  position: Position3D
+  texture: THREE.Texture
+  onLanternDetected: (pos: Position3D) => void
+}
+
+function MapTile({ name, position, texture, onLanternDetected }: MapTileProps) {
   const { scene } = useGLTF(`/models/environment/${name}.glb`)
   const detectedRef = useRef(false)
 
   useEffect(() => {
     let lightsFound = 0
     scene.traverse((obj) => {
-      if (obj.isLight) {
+      if ((obj as THREE.Light).isLight) {
         obj.parent?.remove(obj)
         lightsFound++
       }
@@ -66,8 +79,8 @@ function MapTile({ name, position, texture, onLanternDetected }) {
     if (!isLanternName) return
 
     scene.traverse((child) => {
-      if (child.isMesh && !detectedRef.current) {
-        const glowPos = [
+      if ((child as THREE.Mesh).isMesh && !detectedRef.current) {
+        const glowPos: Position3D = [
           position[0],
           position[1] + 0.15,
           position[2]
@@ -86,13 +99,15 @@ function MapTile({ name, position, texture, onLanternDetected }) {
   const clone = useMemo(() => {
     const c = scene.clone()
     c.traverse((child) => {
-      if (child.isMesh) {
-        child.material = child.material.clone()
-        child.material.map = texture
-        child.material.emissive = new THREE.Color(0x000000)
-        child.material.emissiveIntensity = 0
-        child.castShadow = false
-        child.receiveShadow = false
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh
+        mesh.material = (mesh.material as THREE.Material).clone()
+        const material = mesh.material as THREE.MeshStandardMaterial
+        material.map = texture
+        material.emissive = new THREE.Color(0x000000)
+        material.emissiveIntensity = 0
+        mesh.castShadow = false
+        mesh.receiveShadow = false
       }
     })
     return c
@@ -106,14 +121,11 @@ function MapTile({ name, position, texture, onLanternDetected }) {
 }
 
 export function MapRenderer() {
-  const [lanternPositions, setLanternPositions] = useState([])
+  const [lanternPositions, setLanternPositions] = useState<Position3D[]>([])
   const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
 
-  // Texture configuration - safe to modify after load
   if (graveyardTx) {
-    // eslint-disable-next-line
     graveyardTx.colorSpace = THREE.SRGBColorSpace
-    // eslint-disable-next-line
     graveyardTx.flipY = false
   }
 
@@ -127,7 +139,7 @@ export function MapRenderer() {
   const offsetX = mapWidth / 2
   const offsetZ = mapHeight / 2
 
-  const handleLanternDetected = (pos) => {
+  const handleLanternDetected = (pos: Position3D) => {
     setLanternPositions(prev => {
       const exists = prev.some(p => p[0] === pos[0] && p[2] === pos[2])
       if (exists) return prev

@@ -1,6 +1,7 @@
 import { PerspectiveCamera, OrthographicCamera } from '@react-three/drei'
 import HunterController from './HunterController'
 import OperatorHUD from '../components/OperatorHUD'
+import type { Roles } from '../types/game.types'
 
 /**
  * RoleManager - Role-based View Logic
@@ -9,9 +10,14 @@ import OperatorHUD from '../components/OperatorHUD'
  * - Hunter: 3rd person perspective camera + full HunterController (GLB + Physics + Controls)
  * - Operator: Top-down orthographic camera (no avatar, sees Hunter synced position)
  */
-export default function RoleManager({ roles, playerId }) {
-  const isHunter = roles?.hunter === playerId
-  const isOperator = roles?.operator === playerId
+interface RoleManagerProps {
+  roles: Roles | undefined;
+  playerId: string | undefined;
+}
+
+const RoleManager: React.FC<RoleManagerProps> = ({ roles, playerId }) => {
+  const isHunter: boolean = roles?.hunter === playerId
+  const isOperator: boolean = roles?.operator === playerId
 
   if (isHunter) {
     return (
@@ -45,3 +51,5 @@ export default function RoleManager({ roles, playerId }) {
   // Fallback - should not happen if roles are assigned
   return null
 }
+
+export default RoleManager

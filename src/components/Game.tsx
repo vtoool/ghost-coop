@@ -1,13 +1,13 @@
-import { Canvas } from '@react-three/fiber'
-import { Physics } from '@react-three/rapier'
-import { KeyboardControls } from '@react-three/drei'
-import { Suspense, useMemo, useState } from 'react'
-import { Joystick, myPlayer, useMultiplayerState } from 'playroomkit'
-import { ErrorBoundary } from 'react-error-boundary'
-import GameWorld from '../experience/GameWorld'
+import { Canvas } from '@react-three/fiber';
+import { Physics } from '@react-three/rapier';
+import { KeyboardControls } from '@react-three/drei';
+import { Suspense, useMemo, useState } from 'react';
+import { Joystick, myPlayer, useMultiplayerState } from 'playroomkit';
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
+import GameWorld from '../experience/GameWorld';
 
-function Fallback({ error }) {
-  console.error('Game World Error:', error)
+const Fallback: React.FC<FallbackProps> = ({ error }) => {
+  console.error('Game World Error:', error);
   return (
     <group>
       <mesh position={[0, 0, 0]}>
@@ -15,17 +15,17 @@ function Fallback({ error }) {
         <meshBasicMaterial color="orange" wireframe />
       </mesh>
     </group>
-  )
-}
+  );
+};
 
-function ClickToPlay() {
-  const [clicked, setClicked] = useState(false)
-  const [roles] = useMultiplayerState('roles')
-  const me = myPlayer()
-  const isHunterConfirmed = roles ? roles.hunter === me?.id : null
-  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
+const ClickToPlay: React.FC = () => {
+  const [clicked, setClicked] = useState<boolean>(false);
+  const [roles] = useMultiplayerState<{ hunter?: string }>('roles');
+  const me = myPlayer();
+  const isHunterConfirmed = roles ? roles.hunter === me?.id : null;
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
   
-  if (clicked) return null
+  if (clicked) return null;
   
   if (isHunterConfirmed === null) {
     return (
@@ -34,10 +34,10 @@ function ClickToPlay() {
           <h2 className="text-4xl font-bold text-orange-500 mb-4">LOADING MISSION...</h2>
         </div>
       </div>
-    )
+    );
   }
   
-  if (!isHunterConfirmed || isTouchDevice) return null
+  if (!isHunterConfirmed || isTouchDevice) return null;
   
   return (
     <div 
@@ -49,22 +49,27 @@ function ClickToPlay() {
         <p className="text-white text-lg">Click anywhere to start controlling your Hunter</p>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default function Game() {
-  const keyboardMap = useMemo(() => [
+type KeyMapping = {
+  name: string;
+  keys: string[];
+};
+
+const Game: React.FC = () => {
+  const keyboardMap: KeyMapping[] = useMemo(() => [
     { name: 'forward', keys: ['ArrowUp', 'w', 'W'] },
     { name: 'backward', keys: ['ArrowDown', 's', 'S'] },
     { name: 'left', keys: ['ArrowLeft', 'a', 'A'] },
     { name: 'right', keys: ['ArrowRight', 'd', 'D'] },
     { name: 'jump', keys: ['Space'] }
-  ], [])
+  ], []);
   
-  const [roles] = useMultiplayerState('roles')
-  const me = myPlayer()
-  const isHunter = roles ? roles.hunter === me?.id : false
-  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window
+  const [roles] = useMultiplayerState<{ hunter?: string }>('roles');
+  const me = myPlayer();
+  const isHunter = roles ? roles.hunter === me?.id : false;
+  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
   
   return (
     <div className="w-full h-full absolute inset-0">
@@ -97,5 +102,7 @@ export default function Game() {
       
       <ClickToPlay />
     </div>
-  )
-}
+  );
+};
+
+export default Game;

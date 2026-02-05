@@ -1,13 +1,14 @@
 import { useMultiplayerState, myPlayer } from 'playroomkit'
 import { useState, useEffect } from 'react'
+import type { GhostPosition } from '../types/game.types'
 
-export default function OperatorHUD() {
-  const ghostPos = useMultiplayerState('ghostPos', { x: 0, y: 1.5, z: 0 })
-  const [revealed, setRevealed] = useState(false)
-  const [revealTimer, setRevealTimer] = useState(0)
+const OperatorHUD: React.FC = () => {
+  const [ghostPos] = useMultiplayerState<GhostPosition>('ghostPos', { x: 0, y: 1.5, z: 0 })
+  const [revealed, setRevealed] = useState<boolean>(false)
+  const [revealTimer, setRevealTimer] = useState<number>(0)
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.code === 'KeyE') {
         setRevealed(true)
         setRevealTimer(5)
@@ -15,7 +16,7 @@ export default function OperatorHUD() {
       }
     }
 
-    const handleKeyUp = (e) => {
+    const handleKeyUp = (e: KeyboardEvent): void => {
       if (e.code === 'KeyE') {
         setRevealed(false)
         setRevealTimer(0)
@@ -35,13 +36,13 @@ export default function OperatorHUD() {
   useEffect(() => {
     if (revealed && revealTimer > 0) {
       const interval = setInterval(() => {
-        setRevealTimer(prev => Math.max(0, prev - 1))
+        setRevealTimer((prev: number) => Math.max(0, prev - 1))
       }, 1000)
       return () => clearInterval(interval)
     }
   }, [revealed, revealTimer])
 
-  const distance = Math.sqrt(
+  const distance: string = Math.sqrt(
     Math.pow(ghostPos.x - 0, 2) +
     Math.pow(ghostPos.z - 0, 2)
   ).toFixed(1)
@@ -91,7 +92,7 @@ export default function OperatorHUD() {
           {revealed ? 'DETECTED' : 'UNKNOWN'}
         </div>
         <div style={{ fontSize: '14px', marginTop: '12px' }}>
-          <div>DISTANCE: <span style={{ color: distance < 10 ? '#ff3366' : '#00f0ff' }}>{distance}m</span></div>
+          <div>DISTANCE: <span style={{ color: Number(distance) < 10 ? '#ff3366' : '#00f0ff' }}>{distance}m</span></div>
           <div>STATUS: <span style={{ color: revealed ? '#ff3366' : '#00f0ff' }}>{revealed ? 'TRACKING' : 'SCANNING'}</span></div>
         </div>
       </div>
@@ -146,3 +147,5 @@ export default function OperatorHUD() {
     </div>
   )
 }
+
+export default OperatorHUD

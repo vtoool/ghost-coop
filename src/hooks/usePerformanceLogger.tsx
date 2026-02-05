@@ -1,11 +1,18 @@
 import { useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 
-export function usePerformanceLogger({ enabled = false, interval = 2000 } = {}) {
+interface PerformanceOptions {
+  enabled: boolean;
+  interval: number;
+}
+
+export function usePerformanceLogger(options: PerformanceOptions = { enabled: false, interval: 2000 }): void {
+  const { enabled = false, interval = 2000 } = options
   const { gl, scene } = useThree()
-  const frameTimes = useRef([])
-  const lastLogTime = useRef(0)
-  const frameCount = useRef(0)
+  const frameTimes = useRef<number[]>([])
+  const lastLogTime = useRef<number>(0)
+  const frameCount = useRef<number>(0)
 
   useEffect(() => {
     if (!enabled) return
@@ -19,7 +26,7 @@ export function usePerformanceLogger({ enabled = false, interval = 2000 } = {}) 
     }
   }, [enabled, scene])
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!enabled) return
 
     frameCount.current++
@@ -34,7 +41,7 @@ export function usePerformanceLogger({ enabled = false, interval = 2000 } = {}) 
   })
 }
 
-function logPerformanceMetrics(gl, scene, frameTimes) {
+function logPerformanceMetrics(gl: THREE.WebGLRenderer, scene: THREE.Scene, frameTimes: number[]): void {
   const avgFrameTime = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length
   const fps = Math.round(1000 / avgFrameTime)
   const minFrameTime = Math.min(...frameTimes)
@@ -51,20 +58,28 @@ function logPerformanceMetrics(gl, scene, frameTimes) {
   console.groupEnd()
 }
 
-function countActiveLights(object) {
+function countActiveLights(object: THREE.Object3D): number {
   let count = 0
   object.traverse((child) => {
-    if (child.isLight) count++
+    if ((child as THREE.Light).isLight) count++
   })
   return count
 }
 
-function countEmissiveMeshes(object) {
+interface EmissiveMeshInfo {
+  name: string;
+  parentName: string;
+  intensity: number;
+}
+
+function countEmissiveMeshes(object: THREE.Object3D): number {
   let count = 0
-  const emissiveMeshes = []
+  const emissiveMeshes: EmissiveMeshInfo[] = []
   object.traverse((child) => {
-    if (child.isMesh && child.material) {
-      const emissiveIntensity = child.material.emissiveIntensity ?? 0
+    const mesh = child as THREE.Mesh
+    if (mesh.isMesh && mesh.material) {
+      const material = mesh.material as THREE.MeshStandardMaterial
+      const emissiveIntensity = material.emissiveIntensity ?? 0
       if (emissiveIntensity > 0) {
         count++
         emissiveMeshes.push({
@@ -87,6 +102,6 @@ function countEmissiveMeshes(object) {
   return count
 }
 
-export function logGLTFAudit(name, lightsRemoved = 0, emissiveAdded = 0) {
+export function logGLTFAudit(name: string, lightsRemoved: number = 0, emissiveAdded: number = 0): void {
   console.log(`[GLTF Audit] ${name}: removed ${lightsRemoved} embedded lights, added ${emissiveAdded} emissive materials`)
 }

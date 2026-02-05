@@ -1,13 +1,34 @@
-import { useState, useEffect } from 'react'
-import { usePlayersList, isHost, myPlayer, useMultiplayerState } from 'playroomkit'
+import React, { useState, useEffect, type ChangeEvent, type KeyboardEvent } from 'react'
+import { usePlayersList, myPlayer, useMultiplayerState } from 'playroomkit'
+import type { Player } from 'playroomkit'
 import { QRCodeSVG } from 'qrcode.react'
-import { clsx } from 'clsx'
+import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { getStoredProfile, setStoredProfile, clearStoredProfile } from '../utils/playerStorage'
 
 // Utility for cleaner Tailwind classes
-function cn(...inputs) {
-  return twMerge(clsx(inputs))
+function cn(...inputs: Parameters<typeof clsx>): string {
+  return twMerge(clsx(...inputs))
+}
+
+// Type definitions
+interface ButtonState {
+  text: string;
+  disabled: boolean;
+  reason: string;
+}
+
+interface Profile {
+  name: string;
+}
+
+interface Roles {
+  hunter: string | null;
+  operator: string | null;
+}
+
+interface PlayerProfile {
+  name: string;
 }
 
 /**
@@ -21,44 +42,48 @@ function cn(...inputs) {
  * - Host migration: If host leaves, remaining player detects and claims
  * - NO players[0] checks - eliminates race conditions
  */
-function Lobby() {
+function Lobby(): React.JSX.Element {
   // Use reactive player list - this triggers re-renders when players join/leave/update
-  const players = usePlayersList(true)
-  const me = myPlayer()
-  const [, setGameStart] = useMultiplayerState('gameStart')
-  const [gamePhase, setGamePhase] = useMultiplayerState('gamePhase', 'lobby')
+  const players: Player[] = usePlayersList(true)
+  const me: Player = myPlayer()
+  const [, setGameStart] = useMultiplayerState<boolean>('gameStart')
+  const [, setGamePhase] = useMultiplayerState<string>('gamePhase', 'lobby')
   
   // IMMUTABLE HOST STATE - The "Stone Tablet" (Leader Election)
-  const [hostId, setHostId] = useMultiplayerState('hostId', null)
+  const [hostId, setHostId] = useMultiplayerState<string | null>('hostId', null)
   
   // Role Management State (NEW FOR PHASE 2)
-  const [roles, setRoles] = useMultiplayerState('roles', {
+  const [roles, setRoles] = useMultiplayerState<Roles>('roles', {
     hunter: null,
     operator: null
   })
   
+  // Helper function for functional role updates
+  const updateRoles = (updater: (prev: Roles) => Roles): void => {
+    setRoles(updater(roles))
+  }
+  
   // Get stored profile from localStorage for pre-filling input
-  const storedProfile = getStoredProfile()
+  const storedProfile: Profile | null = getStoredProfile()
   
   // Local UI state only
-  const [nameInput, setNameInput] = useState(() => storedProfile?.name || '')
-  const [linkCopied, setLinkCopied] = useState(false)
+  const [nameInput, setNameInput] = useState<string>(() => storedProfile?.name || '')
   
   // Get current player state from Playroom (networked)
-  const myProfile = me.getState('profile')
-  const myName = myProfile?.name || null
-  const isReady = me.getState('ready') || false
+  const myProfile: PlayerProfile | undefined = me.getState<PlayerProfile>('profile')
+  const myName: string | null = myProfile?.name || null
+  const isReady: boolean = me.getState<boolean>('ready') || false
   
   // CRITICAL: Immutable Host Authority - No players[0] fallback
   // Host is whoever's ID is written in the "Stone Tablet" (hostId)
-  const amIHost = hostId === me?.id
+  const amIHost: boolean = hostId === me?.id
   
   // Get other player's ready status
-  const otherPlayer = players.find(p => p.id !== me?.id)
-  const otherPlayerReady = otherPlayer?.getState('ready') || false
+  const otherPlayer: Player | undefined = players.find((p: Player) => p.id !== me?.id)
+  const otherPlayerReady: boolean = otherPlayer?.getState<boolean>('ready') || false
   
   // Compute button state - OVERRIDE FOR SOLO DEV MODE
-  const getButtonState = () => {
+  const getButtonState = (): ButtonState => {
     if (!amIHost) return { 
       text: "WAITING FOR HOST...", 
       disabled: true,
@@ -94,58 +119,58 @@ function Lobby() {
     }
   }
   
-  const buttonState = getButtonState()
+  const buttonState: ButtonState = getButtonState()
   
   // Check if all players are ready
-  const allReady = players.length > 0 && players.every(p => p.getState('ready'))
+  const allReady: boolean = players.length > 0 && players.every((p: Player) => p.getState<boolean>('ready'))
   
   // Check if roles are assigned (2-player OR solo dev mode with 1 player)
-  const rolesAssigned = (roles.hunter && roles.operator) || players.length === 1
+  const rolesAssigned: boolean = (roles.hunter !== null && roles.operator !== null) || players.length === 1
   
   // Get player names for role cards
-  const getPlayerName = (playerId) => {
+  const getPlayerName = (playerId: string | null): string => {
     if (!playerId) return 'VACANT'
-    const player = players.find(p => p.id === playerId)
-    return player?.getState('profile')?.name || 'Unknown'
+    const player: Player | undefined = players.find((p: Player) => p.id === playerId)
+    return player?.getState<PlayerProfile>('profile')?.name || 'Unknown'
   }
   
-  const hunterName = getPlayerName(roles.hunter)
-  const operatorName = getPlayerName(roles.operator)
-  const myRole = roles.hunter === me.id ? 'hunter' : roles.operator === me.id ? 'operator' : null
+  const hunterName: string = getPlayerName(roles.hunter)
+  const operatorName: string = getPlayerName(roles.operator)
+  const myRole: 'hunter' | 'operator' | null = roles.hunter === me.id ? 'hunter' : roles.operator === me.id ? 'operator' : null
   
   // LEADER ELECTION EFFECT - The "Stone Tablet" Authority
-  useEffect(() => {
+  useEffect((): void => {
     // CASE 1: Vacancy - No host assigned, claim it if I'm here
     if (!hostId && me?.id) {
-      setHostId(me.id, true) // reliable=true
+      setHostId(me.id)
       return
     }
 
     // CASE 2: Abdication (Migration) - Host left, remaining player claims
-    if (hostId && !players.find(p => p.id === hostId)) {
+    if (hostId && !players.find((p: Player) => p.id === hostId)) {
       // Host is gone! Check if I'm the remaining player
       if (players.length > 0 && players[0]?.id === me?.id) {
-        setHostId(me.id, true) // reliable=true
+        setHostId(me.id)
       }
       return
     }
   }, [hostId, players, me?.id, setHostId])
   
   // Role Assignment Effect - Only runs if I'm the immutable host
-  useEffect(() => {
+  useEffect((): void => {
     // Only Host manages roles to avoid conflicts
     if (!amIHost) {
       return
     }
     
     // Find other player (if exists)
-    const otherPlayer = players.find(p => p.id !== me.id)
-    const otherPlayerId = otherPlayer?.id
+    const otherPlayer: Player | undefined = players.find((p: Player) => p.id !== me.id)
+    const otherPlayerId: string | undefined = otherPlayer?.id
     
     // CASE A: Auto-Assign Roles when 2nd player joins
     if (players.length === 2 && otherPlayerId) {
       // If roles are empty or invalid, assign fresh
-      const needsAssignment = !roles.hunter || !roles.operator ||
+      const needsAssignment: boolean = !roles.hunter || !roles.operator ||
         (roles.hunter !== me.id && roles.hunter !== otherPlayerId) ||
         (roles.operator !== me.id && roles.operator !== otherPlayerId)
       
@@ -163,49 +188,49 @@ function Lobby() {
     }
 
     // CASE C: Clear departed player roles
-    if (roles.hunter && !players.find(p => p.id === roles.hunter)) {
-      setRoles(prev => ({ ...prev, hunter: null }))
+    if (roles.hunter && !players.find((p: Player) => p.id === roles.hunter)) {
+      updateRoles((prev: Roles) => ({ ...prev, hunter: null }))
     }
-    if (roles.operator && !players.find(p => p.id === roles.operator)) {
-      setRoles(prev => ({ ...prev, operator: null }))
+    if (roles.operator && !players.find((p: Player) => p.id === roles.operator)) {
+      updateRoles((prev: Roles) => ({ ...prev, operator: null }))
     }
     
-  }, [players, amIHost, me.id, roles.hunter, roles.operator, setRoles])
+  }, [players, amIHost, me.id, roles.hunter, roles.operator, setRoles, updateRoles])
   
   // Handle name submission
-  const handleJoin = () => {
+  const handleJoin = (): void => {
     if (!nameInput.trim()) {
       return
     }
 
-    const profile = { name: nameInput.trim() }
+    const profile: Profile = { name: nameInput.trim() }
 
     // Set in Playroom state (for multiplayer sync) - reliable=true
-    me.setState('profile', profile, true)
-    me.setState('ready', false, true)
+    me.setState<Profile>('profile', profile, true)
+    me.setState<boolean>('ready', false, true)
 
     // Persist to localStorage
     setStoredProfile(profile)
   }
   
   // Handle leaving room
-  const handleLeaveRoom = () => {
+  const handleLeaveRoom = (): void => {
     clearStoredProfile()
     window.location.reload()
   }
   
   // Toggle ready status
-  const toggleReady = () => {
-    const newReady = !isReady
+  const toggleReady = (): void => {
+    const newReady: boolean = !isReady
     // Set in Playroom state (for multiplayer sync) - reliable=true
-    me.setState('ready', newReady, true)
+    me.setState<boolean>('ready', newReady, true)
   }
   
   // Swap roles function (Host only)
-  const swapRoles = () => {
+  const swapRoles = (): void => {
     if (!amIHost) return
 
-    const newRoles = {
+    const newRoles: Roles = {
       hunter: roles.operator,
       operator: roles.hunter
     }
@@ -213,10 +238,10 @@ function Lobby() {
   }
   
   // Host starts the game - FORCE SOLO MODE
-  const handleStartGame = () => {
+  const handleStartGame = (): void => {
     // Allow solo play: 1 player + host + ready (skip rolesAssigned check for solo)
-    const canStartSolo = amIHost && isReady && players.length === 1
-    const canStartMulti = amIHost && allReady && rolesAssigned && players.length >= 2
+    const canStartSolo: boolean = amIHost && isReady && players.length === 1
+    const canStartMulti: boolean = amIHost && allReady && rolesAssigned && players.length >= 2
     
     if (canStartSolo || canStartMulti) {
       setGamePhase('playing')
@@ -225,11 +250,11 @@ function Lobby() {
   }
   
   // Get room code from URL hash
-  const roomCode = window.location.hash?.slice(1) || 'Unknown'
+  const roomCode: string = window.location.hash?.slice(1) || 'Unknown'
   
   // Get animation delay based on index
-  const getAnimationDelay = (index) => {
-    const delays = ['animate-float', 'animate-float-delay-1', 'animate-float-delay-2', 'animate-float-delay-3']
+  const getAnimationDelay = (index: number): string => {
+    const delays: string[] = ['animate-float', 'animate-float-delay-1', 'animate-float-delay-2', 'animate-float-delay-3']
     return delays[index % delays.length]
   }
   
@@ -255,8 +280,8 @@ function Lobby() {
             type="text"
             placeholder="ENTER YOUR CALLSIGN..."
             value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setNameInput(e.target.value)}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleJoin()}
             className="input-ghost text-center text-base"
             style={{ width: '100%' }}
             autoFocus
@@ -471,11 +496,11 @@ function Lobby() {
               Ghost Hunters ({players.length})
             </h2>
             <div className="space-y-3">
-              {players.map((player, index) => {
-                const profile = player.getState('profile')
-                const ready = player.getState('ready')
-                const isMe = player.id === me.id
-                const isPlayerHost = player.id === hostId // Use immutable hostId
+              {players.map((player: Player, index: number) => {
+                const profile: PlayerProfile | undefined = player.getState<PlayerProfile>('profile')
+                const ready: boolean | undefined = player.getState<boolean>('ready')
+                const isMe: boolean = player.id === me.id
+                const isPlayerHost: boolean = player.id === hostId // Use immutable hostId
                 
                 return (
                   <div key={player.id} className={cn("player-card", getAnimationDelay(index))}>
