@@ -1,11 +1,19 @@
-import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
+import { useRef, useMemo, useEffect, useState } from 'react'
+import { useFrame, useGraph } from '@react-three/fiber'
+import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
+import { SkeletonUtils } from 'three-stdlib'
 import type { Player } from 'playroomkit'
 
 interface RemotePlayerProps {
   player: Player
+}
+
+function useSkinnedMeshClone(path: string) {
+  const { scene, animations } = useGLTF(path)
+  const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene])
+  useGraph(clonedScene)
+  return { scene: clonedScene, animations }
 }
 
 let lastLog = 0
@@ -21,25 +29,33 @@ function logThrottled(label: string, data: unknown) {
 export default function RemotePlayer({ player }: RemotePlayerProps): React.ReactElement {
   const meshRef = useRef<THREE.Group>(null)
   const targetPos = useRef(new THREE.Vector3(0, 5, 0))
+  const [currentAnim, setCurrentAnim] = useState<string>('idle')
 
-  const { scene } = useGLTF('/models/characters/character-male-a.glb')
+  const { scene, animations } = useSkinnedMeshClone('/models/characters/character-male-a.glb')
+  const { actions } = useAnimations(animations, scene)
 
-  useMemo(() => {
+  useEffect(() => {
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh
         mesh.castShadow = false
         mesh.receiveShadow = false
         if (mesh.material) {
-          mesh.material = new THREE.MeshStandardMaterial({
-            color: 0xFF3333,
-            emissive: 0x330000,
-            emissiveIntensity: 0.2
-          })
+          mesh.material = (mesh.material as THREE.Material).clone()
+          ;(mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000)
+          ;(mesh.material as THREE.MeshStandardMaterial).emissive.set(0x330000)
+          ;(mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.2
         }
       }
     })
   }, [scene])
+
+  useEffect(() => {
+    actions['idle']?.reset().fadeIn(0.2).play()
+    return () => {
+      actions['idle']?.fadeOut(0.2)
+    }
+  }, [actions])
 
   useFrame((_, delta) => {
     const posState = player.getState<{ x: number; y: number; z: number }>('pos')
@@ -51,8 +67,20 @@ export default function RemotePlayer({ player }: RemotePlayerProps): React.React
       meshRef.current.position.lerp(targetPos.current, delta * 10)
     }
 
+    const networkAnim = player.getState<string>('anim')
+    if (networkAnim && networkAnim !== currentAnim && actions[networkAnim]) {
+      const prev = actions[currentAnim]
+      const next = actions[networkAnim]
+
+      prev?.fadeOut(0.2)
+      next?.reset().fadeIn(0.2).play()
+
+      setCurrentAnim(networkAnim)
+    }
+
     logThrottled(`RemotePlayer ${player.id.slice(0, 6)}`, {
-      pos: posState ? `${posState.x.toFixed(1)}, ${posState.y.toFixed(1)}, ${posState.z.toFixed(1)}` : 'none'
+      pos: posState ? `${posState.x.toFixed(1)}, ${posState.y.toFixed(1)}, ${posState.z.toFixed(1)}` : 'none',
+      anim: networkAnim || 'none'
     })
   })
 

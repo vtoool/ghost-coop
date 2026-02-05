@@ -83,7 +83,7 @@ export default function GameWorld(): ReactElement {
         {/* Player Rendering Loop */}
         {players.map((p) => {
           const isLocal = p.id === player?.id
-          console.log(`[PlayerLoop] Player ${p.id.slice(0, 8)}, isLocal: ${isLocal}`)
+          console.log(`[PlayerLoop] Player ${p.id.slice(0, 8)}, myId: ${player?.id?.slice(0, 8)}, isLocal: ${isLocal}`)
 
           return isLocal ? (
             <RoleManager
