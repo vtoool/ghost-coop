@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 
-export function usePerformanceLogger({ enabled = true, interval = 2000 } = {}) {
+export function usePerformanceLogger({ enabled = false, interval = 2000 } = {}) {
   const { gl, scene } = useThree()
   const frameTimes = useRef([])
   const lastLogTime = useRef(0)

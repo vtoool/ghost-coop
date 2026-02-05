@@ -88,8 +88,9 @@ export default function HunterController() {
 
     let targetY = vel.y
 
-    if (jump && isGrounded && !wasGrounded.current) {
+    if (jump && isGrounded) {
       targetY = jumpVelocity
+      console.log('[Jump] Jump triggered - groundDist:', groundDistance.current.toFixed(2))
     }
 
     wasGrounded.current = isGrounded
