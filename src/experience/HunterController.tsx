@@ -154,6 +154,7 @@ export default function HunterController(): ReactElement {
     }
 
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
+    player.setState('quat', rigidBodyRef.current.rotation())
 
     let targetAnim: AnimationAction = 'idle'
     if (isGrounded) {
