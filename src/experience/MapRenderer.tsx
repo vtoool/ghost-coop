@@ -67,6 +67,7 @@ interface ModelPositions {
   stone_wall: Position3D[]
   pine_crooked: Position3D[]
   pine: Position3D[]
+  oak: Position3D[]
   gravestone_cross: Position3D[]
   gravestone_round: Position3D[]
   gravestone_broken: Position3D[]
@@ -84,6 +85,7 @@ function useMapParser() {
       stone_wall: [],
       pine_crooked: [],
       pine: [],
+      oak: [],
       gravestone_cross: [],
       gravestone_round: [],
       gravestone_broken: [],
@@ -179,6 +181,14 @@ export function MapRenderer() {
         positions={positions.pine}
         collider="hull"
         scale={1.2}
+        randomRotation
+      />
+
+      <Instancer
+        model="oak"
+        positions={positions.oak}
+        collider="hull"
+        scale={1.5}
         randomRotation
       />
 

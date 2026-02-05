@@ -8,6 +8,7 @@ const MODEL_PATHS = {
   stone_wall: '/models/environment/stone-wall.glb',
   pine_crooked: '/models/environment/pine-crooked.glb',
   pine: '/models/environment/pine.glb',
+  oak: '/models/environment/oak.glb',
   gravestone_cross: '/models/environment/gravestone-cross.glb',
   gravestone_round: '/models/environment/gravestone-round.glb',
   gravestone_broken: '/models/environment/gravestone-broken.glb',
@@ -200,6 +201,7 @@ useGLTF.preload('/models/environment/iron-fence-border-gate.glb')
 useGLTF.preload('/models/environment/stone-wall.glb')
 useGLTF.preload('/models/environment/pine-crooked.glb')
 useGLTF.preload('/models/environment/pine.glb')
+useGLTF.preload('/models/environment/oak.glb')
 useGLTF.preload('/models/environment/gravestone-cross.glb')
 useGLTF.preload('/models/environment/gravestone-round.glb')
 useGLTF.preload('/models/environment/gravestone-broken.glb')
