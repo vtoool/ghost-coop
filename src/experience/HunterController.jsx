@@ -117,7 +117,7 @@ export default function HunterController() {
     }
 
     if (shadowRef.current) {
-      const rayOrigin = new THREE.Vector3(pos.x, 2.0, pos.z)
+      const rayOrigin = new THREE.Vector3(pos.x, pos.y - 0.5, pos.z)
       raycaster.current.set(rayOrigin, downVector.current)
       raycaster.current.camera = camera
       raycaster.current.near = 0.1
