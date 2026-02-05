@@ -111,7 +111,11 @@ function useMapParser() {
           lanternPositions.push(glowPos)
           positions.lantern_candle.push(pos)
         } else if (modelName === 'iron_fence') {
-          if (char === 'v') {
+          const hasVerticalNeighbor = 
+            level1[z - 1]?.[x] === 'x' || 
+            level1[z + 1]?.[x] === 'x'
+          
+          if (hasVerticalNeighbor) {
             positions.iron_fence_rotated.push(pos)
           } else {
             positions.iron_fence.push(pos)
