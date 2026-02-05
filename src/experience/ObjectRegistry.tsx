@@ -50,31 +50,31 @@ interface ProcessedGLTF {
   lightsRemoved: number
 }
 
-function processGLTF(gltf: THREE.Group, name: string): ProcessedGLTF {
+function processGLTF(gltfScene: THREE.Group, name: string): ProcessedGLTF {
   const lightsRemoved = { current: 0 }
-  
-  const processed = gltf.clone()
-  
+
+  const processed = gltfScene.clone()
+
   processed.traverse((child) => {
     if ((child as THREE.Light).isLight) {
       child.parent?.remove(child)
       lightsRemoved.current++
       return
     }
-    
+
     if ((child as THREE.Mesh).isMesh) {
       const mesh = child as THREE.Mesh
-      
+
       mesh.castShadow = true
       mesh.receiveShadow = true
-      
+
       if (mesh.material) {
         const mat = mesh.material as THREE.MeshStandardMaterial
-        
+
         if (!mat.name) {
           mat.name = `${name}-material`
         }
-        
+
         if (Array.isArray(mat)) {
           mat.forEach((m) => {
             m.emissive = new THREE.Color(0x000000)
@@ -87,7 +87,7 @@ function processGLTF(gltf: THREE.Group, name: string): ProcessedGLTF {
       }
     }
   })
-  
+
   return { scene: processed, lightsRemoved: lightsRemoved.current }
 }
 
@@ -116,14 +116,16 @@ interface ObjectRegistryProps {
 }
 
 function ModelLoader({ name, path, onLoad }: { name: ModelName; path: string; onLoad: (data: ModelData) => void }) {
-  const gltf = useGLTF(path) as unknown as THREE.Group
+  const gltf = useGLTF(path)
+  const gltfScene = gltf.scene
   const [processed, setProcessed] = useState<ProcessedGLTF | null>(null)
-  
+
   useEffect(() => {
-    const result = processGLTF(gltf, name)
+    if (!gltfScene) return
+    const result = processGLTF(gltfScene, name)
     setProcessed(result)
-  }, [gltf, name])
-  
+  }, [gltfScene, name])
+
   useEffect(() => {
     if (processed) {
       const { geometry, material } = extractMainGeometry(processed.scene)
@@ -137,7 +139,7 @@ function ModelLoader({ name, path, onLoad }: { name: ModelName; path: string; on
       onLoad(data)
     }
   }, [processed, name, onLoad])
-  
+
   return null
 }
 
