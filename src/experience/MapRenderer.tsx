@@ -1,8 +1,9 @@
-import { useMemo, useEffect, useRef, useState } from 'react'
-import { useGLTF, useTexture } from '@react-three/drei'
+import { useMemo } from 'react'
+import { useTexture } from '@react-three/drei'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import { level1, mapLegend } from './LevelMap'
+import { Instancer } from './Instancer'
 
 const DEBUG_LANTERNS = false
 
@@ -47,81 +48,75 @@ function GlowSprite({ position }: GlowSpriteProps) {
   )
 }
 
-interface MapTileProps {
-  name: string
-  position: Position3D
-  texture: THREE.Texture
-  onLanternDetected: (pos: Position3D) => void
+const gridSize = 2
+const width = level1[0].length
+const height = level1.length
+const mapWidth = width * gridSize
+const mapHeight = height * gridSize
+const offsetX = mapWidth / 2
+const offsetZ = mapHeight / 2
+
+function calculateGridPosition(x: number, z: number): [number, number, number] {
+  const posX = (x * gridSize) - offsetX + (gridSize / 2)
+  const posZ = (z * gridSize) - offsetZ + (gridSize / 2)
+  return [posX, 0, posZ]
 }
 
-function MapTile({ name, position, texture, onLanternDetected }: MapTileProps) {
-  const { scene } = useGLTF(`/models/environment/${name}.glb`)
-  const detectedRef = useRef(false)
+type ModelPositions = Record<string, Position3D[]>
 
-  useEffect(() => {
-    let lightsFound = 0
-    scene.traverse((obj) => {
-      if ((obj as THREE.Light).isLight) {
-        obj.parent?.remove(obj)
-        lightsFound++
-      }
-    })
-    if (lightsFound > 0 && DEBUG_LANTERNS) {
-      console.log(`[GLTF Audit] ${name}: removed ${lightsFound} embedded lights`)
+function useMapParser() {
+  return useMemo(() => {
+    const positions: ModelPositions = {
+      iron_fence: [],
+      iron_fence_border_gate: [],
+      stone_wall: [],
+      pine_crooked: [],
+      pine: [],
+      gravestone_cross: [],
+      gravestone_round: [],
+      gravestone_broken: [],
+      crypt: [],
+      lantern_candle: [],
+      bench: [],
+      rocks: [],
     }
-  }, [scene, name])
 
-  useEffect(() => {
-    if (detectedRef.current) return
+    const lanternPositions: Position3D[] = []
 
-    const isLanternName = name.toLowerCase().includes('lantern') || name.toLowerCase().includes('lamp')
+    level1.forEach((row, z) => {
+      row.split('').forEach((char, x) => {
+        const modelName = mapLegend[char]
+        if (!modelName) return
 
-    if (!isLanternName) return
+        const pos = calculateGridPosition(x, z)
 
-    scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh && !detectedRef.current) {
-        const glowPos: Position3D = [
-          position[0],
-          position[1] + 0.15,
-          position[2]
-        ]
-        detectedRef.current = true
-
-        if (DEBUG_LANTERNS) {
-          console.log(`[MapTile] LANTERN: ${name} at ${JSON.stringify(glowPos)}`)
+        if (modelName === 'lantern-candle') {
+          const glowPos: Position3D = [pos[0], pos[1] + 0.15, pos[2]]
+          lanternPositions.push(glowPos)
+          positions.lantern_candle.push(pos)
+        } else {
+          const key = modelName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+          if (positions[key]) {
+            positions[key].push(pos)
+          }
         }
-
-        onLanternDetected(glowPos)
-      }
+      })
     })
-  }, [scene, name, position, onLanternDetected])
 
-  const clone = useMemo(() => {
-    const c = scene.clone()
-    c.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh
-        mesh.material = (mesh.material as THREE.Material).clone()
-        const material = mesh.material as THREE.MeshStandardMaterial
-        material.map = texture
-        material.emissive = new THREE.Color(0x000000)
-        material.emissiveIntensity = 0
-        mesh.castShadow = false
-        mesh.receiveShadow = false
-      }
-    })
-    return c
-  }, [scene, texture])
+    if (DEBUG_LANTERNS) {
+      console.log('[MapParser] Parsed positions:')
+      Object.entries(positions).forEach(([key, pos]) => {
+        if (pos.length > 0) {
+          console.log(`  ${key}: ${pos.length} instances`)
+        }
+      })
+    }
 
-  return (
-    <RigidBody type="fixed" colliders="hull" position={position}>
-      <primitive object={clone} />
-    </RigidBody>
-  )
+    return { positions, lanternPositions }
+  }, [])
 }
 
 export function MapRenderer() {
-  const [lanternPositions, setLanternPositions] = useState<Position3D[]>([])
   const graveyardTx = useTexture('/models/environment/Textures/colormap_graveyard.png')
 
   if (graveyardTx) {
@@ -129,54 +124,7 @@ export function MapRenderer() {
     graveyardTx.flipY = false
   }
 
-  const gridSize = 2
-  const width = level1[0].length
-  const height = level1.length
-
-  const mapWidth = width * gridSize
-  const mapHeight = height * gridSize
-
-  const offsetX = mapWidth / 2
-  const offsetZ = mapHeight / 2
-
-  const handleLanternDetected = (pos: Position3D) => {
-    setLanternPositions(prev => {
-      const exists = prev.some(p => p[0] === pos[0] && p[2] === pos[2])
-      if (exists) return prev
-      if (DEBUG_LANTERNS) {
-        console.log(`[MapRenderer] Added lantern at ${JSON.stringify(pos)}`)
-      }
-      return [...prev, pos]
-    })
-  }
-
-  const props = level1.flatMap((row, z) =>
-    row.split('').map((_, x) => {
-      const name = mapLegend[row[x]]
-      if (!name) return null
-
-      const posX = (x * gridSize) - offsetX + (gridSize / 2)
-      const posZ = (z * gridSize) - offsetZ + (gridSize / 2)
-
-      return (
-        <MapTile
-          key={`prop-${x}-${z}`}
-          name={name}
-          position={[posX, 0, posZ]}
-          texture={graveyardTx}
-          onLanternDetected={handleLanternDetected}
-        />
-      )
-    })
-  )
-
-  const glowSprites = lanternPositions.map((pos, i) => (
-    <GlowSprite key={`glow-${i}`} position={pos} />
-  ))
-
-  if (DEBUG_LANTERNS) {
-    console.log(`[MapRenderer] Rendering ${lanternPositions.length} glow sprites`)
-  }
+  const { positions, lanternPositions } = useMapParser()
 
   return (
     <group>
@@ -189,9 +137,81 @@ export function MapRenderer() {
         <CuboidCollider args={[mapWidth / 2, 0.5, mapHeight / 2]} />
       </RigidBody>
 
-      <group>{props}</group>
+      <Instancer
+        model="iron_fence"
+        positions={positions.iron_fence}
+        collider="hull"
+      />
 
-      <group>{glowSprites}</group>
+      <Instancer
+        model="iron_fence_border_gate"
+        positions={positions.iron_fence_border_gate}
+        collider="hull"
+      />
+
+      <Instancer
+        model="stone_wall"
+        positions={positions.stone_wall}
+        collider="cuboid"
+      />
+
+      <Instancer
+        model="pine_crooked"
+        positions={positions.pine_crooked}
+        collider="hull"
+      />
+
+      <Instancer
+        model="pine"
+        positions={positions.pine}
+        collider="hull"
+      />
+
+      <Instancer
+        model="gravestone_cross"
+        positions={positions.gravestone_cross}
+        collider="cuboid"
+      />
+
+      <Instancer
+        model="gravestone_round"
+        positions={positions.gravestone_round}
+        collider="cuboid"
+      />
+
+      <Instancer
+        model="gravestone_broken"
+        positions={positions.gravestone_broken}
+        collider="cuboid"
+      />
+
+      <Instancer
+        model="crypt"
+        positions={positions.crypt}
+        collider="hull"
+      />
+
+      <Instancer
+        model="bench"
+        positions={positions.bench}
+        collider="hull"
+      />
+
+      <Instancer
+        model="rocks"
+        positions={positions.rocks}
+        collider="hull"
+      />
+
+      <Instancer
+        model="lantern_candle"
+        positions={positions.lantern_candle}
+        collider="cuboid"
+      />
+
+      {lanternPositions.map((pos, i) => (
+        <GlowSprite key={`glow-${i}`} position={pos} />
+      ))}
     </group>
   )
 }
