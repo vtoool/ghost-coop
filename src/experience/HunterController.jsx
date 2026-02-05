@@ -134,7 +134,7 @@ export default function HunterController() {
         
         if (hit.distance < 0.5) continue
         
-        if (obj === characterScene || obj.parent === characterScene) continue
+        if (obj.name !== 'ground') continue
         
         if (hit.distance < closestGroundDist) {
           closestGroundDist = hit.distance

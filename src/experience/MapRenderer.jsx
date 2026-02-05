@@ -168,7 +168,7 @@ export function MapRenderer() {
 
   return (
     <group>
-      <mesh position={[0, -0.5, 0]}>
+      <mesh name="ground" position={[0, -0.5, 0]}>
         <boxGeometry args={[mapWidth, 1, mapHeight]} />
         <meshStandardMaterial color="#2d4a2d" roughness={0.8} metalness={0} />
       </mesh>
