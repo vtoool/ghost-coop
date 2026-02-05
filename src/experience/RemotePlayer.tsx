@@ -8,6 +8,16 @@ interface RemotePlayerProps {
   player: Player
 }
 
+let lastLog = 0
+
+function logThrottled(label: string, data: unknown) {
+  const now = Date.now()
+  if (now - lastLog > 2000) {
+    console.log(`[${label}]`, data)
+    lastLog = now
+  }
+}
+
 export default function RemotePlayer({ player }: RemotePlayerProps): React.ReactElement {
   const meshRef = useRef<THREE.Group>(null)
   const targetPos = useRef(new THREE.Vector3(0, 5, 0))
@@ -40,6 +50,10 @@ export default function RemotePlayer({ player }: RemotePlayerProps): React.React
     if (meshRef.current) {
       meshRef.current.position.lerp(targetPos.current, delta * 10)
     }
+
+    logThrottled(`RemotePlayer ${player.id.slice(0, 6)}`, {
+      pos: posState ? `${posState.x.toFixed(1)}, ${posState.y.toFixed(1)}, ${posState.z.toFixed(1)}` : 'none'
+    })
   })
 
   return (

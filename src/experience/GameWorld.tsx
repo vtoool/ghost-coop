@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMultiplayerState, myPlayer, usePlayersList } from 'playroomkit'
 import { Stats, PerformanceMonitor, Sparkles } from '@react-three/drei'
 import RoleManager from './RoleManager'
@@ -10,27 +10,20 @@ import { usePerformanceLogger } from '../hooks/usePerformanceLogger'
 import type { Roles } from '../types/game.types'
 import { ObjectRegistry } from './ObjectRegistry'
 
-/**
- * GameWorld - The 3D Scene
- * 
- * Contains lighting, environment, and role-based view logic.
- * Everyone sees the same world, but cameras differ by role.
- * 
- * Features:
- * - Full graveyard environment with procedural props
- * - Ghost entity that both players interact with
- * - Hunter position synced to Operator view
- */
 export default function GameWorld(): ReactElement {
   const [lowQuality, setLowQuality] = useState<boolean>(false)
 
-  // Enable performance logging (disabled for production)
   usePerformanceLogger({ enabled: false, interval: 2000 })
 
-  // Get roles from Playroom state
   const [roles] = useMultiplayerState<Roles>('roles', { hunter: null, operator: null })
   const player = myPlayer()
   const players = usePlayersList(true)
+
+  useEffect(() => {
+    console.log('[Multiplayer] === JOIN/LEAVE EVENT ===')
+    console.log('[Multiplayer] MyPlayer ID:', player?.id)
+    console.log('[Multiplayer] All Players:', players.map(p => ({ id: p.id.slice(0, 8), isMe: p.id === player?.id })))
+  }, [players.length, player?.id])
 
   const handlePerformanceDecline = (): void => {
     console.log('[PerformanceMonitor] Quality degraded - reducing effects')
@@ -90,6 +83,7 @@ export default function GameWorld(): ReactElement {
         {/* Player Rendering Loop */}
         {players.map((p) => {
           const isLocal = p.id === player?.id
+          console.log(`[PlayerLoop] Player ${p.id.slice(0, 8)}, isLocal: ${isLocal}`)
 
           return isLocal ? (
             <RoleManager
@@ -97,7 +91,7 @@ export default function GameWorld(): ReactElement {
               roles={roles}
               playerId={p.id}
               player={p}
-              players={players}
+              isLocal={true}
             />
           ) : (
             <RemotePlayer key={p.id} player={p} />

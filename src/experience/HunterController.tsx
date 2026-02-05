@@ -85,6 +85,7 @@ export default function HunterController(): ReactElement {
         mesh.receiveShadow = false
         if (mesh.material) {
           const material = mesh.material as THREE.MeshStandardMaterial
+          material.color = new THREE.Color(0xffffff)
           material.emissive = new THREE.Color(0x000000)
           material.emissiveIntensity = 0
         }
