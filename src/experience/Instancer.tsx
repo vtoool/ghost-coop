@@ -9,6 +9,8 @@ interface InstancerProps {
   positions: number[][]
   rotation?: number
   scale?: number
+  randomRotation?: boolean
+  randomSeed?: number
   collider?: 'cuboid' | 'hull' | 'trimesh'
 }
 
@@ -21,11 +23,18 @@ interface RigidBodyInstance {
 
 const tempObject = new Object3D()
 
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9999) * 10000
+  return x - Math.floor(x)
+}
+
 export function Instancer({
   model,
   positions,
   rotation = 0,
   scale = 1,
+  randomRotation = false,
+  randomSeed = Math.random(),
   collider = 'cuboid',
 }: InstancerProps): ReactNode {
   const { getModel, isLoading } = useObjectRegistry()
@@ -40,13 +49,19 @@ export function Instancer({
   }, [positions])
 
   const instances: RigidBodyInstance[] = useMemo(() => {
-    return validPositions.map((pos, index) => ({
-      key: `${index}-${pos[0]}-${pos[1]}-${pos[2]}`,
-      position: [pos[0], pos[1], pos[2]],
-      rotation: [0, rotation, 0] as [number, number, number],
-      scale: [scale, scale, scale] as [number, number, number],
-    }))
-  }, [validPositions, rotation, scale])
+    return validPositions.map((pos, index) => {
+      const instanceRotation = randomRotation
+        ? seededRandom(randomSeed + index) * Math.PI * 2
+        : rotation
+
+      return {
+        key: `${index}-${pos[0]}-${pos[1]}-${pos[2]}-${instanceRotation.toFixed(3)}`,
+        position: [pos[0], pos[1], pos[2]],
+        rotation: [0, instanceRotation, 0] as [number, number, number],
+        scale: [scale, scale, scale] as [number, number, number],
+      }
+    })
+  }, [validPositions, rotation, scale, randomRotation, randomSeed])
 
   useLayoutEffect(() => {
     if (!meshRef.current || validPositions.length === 0) return
@@ -55,17 +70,18 @@ export function Instancer({
 
     for (let i = 0; i < validPositions.length; i++) {
       const pos = validPositions[i]
-      
+      const instance = instances[i]
+
       tempObject.position.set(pos[0], pos[1], pos[2])
-      tempObject.rotation.set(0, rotation, 0)
+      tempObject.rotation.set(0, instance.rotation[1], 0)
       tempObject.scale.setScalar(scale)
-      
+
       tempObject.updateMatrix()
       meshRef.current!.setMatrixAt(i, tempObject.matrix)
     }
 
     meshRef.current.instanceMatrix.needsUpdate = true
-  }, [validPositions, rotation, scale])
+  }, [validPositions, instances, scale])
 
   if (isLoading || !modelData) {
     return null

@@ -62,13 +62,26 @@ function calculateGridPosition(x: number, z: number): [number, number, number] {
   return [posX, 0, posZ]
 }
 
-type ModelPositions = Record<string, Position3D[]>
+interface ModelPositions {
+  iron_fence: Position3D[]
+  iron_fence_rotated: Position3D[]
+  stone_wall: Position3D[]
+  pine_crooked: Position3D[]
+  pine: Position3D[]
+  gravestone_cross: Position3D[]
+  gravestone_round: Position3D[]
+  gravestone_broken: Position3D[]
+  crypt: Position3D[]
+  lantern_candle: Position3D[]
+  bench: Position3D[]
+  rocks: Position3D[]
+}
 
 function useMapParser() {
   return useMemo(() => {
     const positions: ModelPositions = {
       iron_fence: [],
-      iron_fence_border_gate: [],
+      iron_fence_rotated: [],
       stone_wall: [],
       pine_crooked: [],
       pine: [],
@@ -90,14 +103,19 @@ function useMapParser() {
 
         const pos = calculateGridPosition(x, z)
 
-        if (modelName === 'lantern-candle') {
+        if (modelName === 'lantern_candle') {
           const glowPos: Position3D = [pos[0], pos[1] + 0.15, pos[2]]
           lanternPositions.push(glowPos)
           positions.lantern_candle.push(pos)
+        } else if (modelName === 'iron_fence') {
+          if (char === 'v') {
+            positions.iron_fence_rotated.push(pos)
+          } else {
+            positions.iron_fence.push(pos)
+          }
         } else {
-          const key = modelName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-          if (positions[key]) {
-            positions[key].push(pos)
+          if (positions[modelName as keyof ModelPositions]) {
+            positions[modelName as keyof ModelPositions].push(pos)
           }
         }
       })
@@ -140,13 +158,14 @@ export function MapRenderer() {
       <Instancer
         model="iron_fence"
         positions={positions.iron_fence}
-        collider="hull"
+        collider="cuboid"
       />
 
       <Instancer
-        model="iron_fence_border_gate"
-        positions={positions.iron_fence_border_gate}
-        collider="hull"
+        model="iron_fence"
+        positions={positions.iron_fence_rotated}
+        rotation={Math.PI / 2}
+        collider="cuboid"
       />
 
       <Instancer
@@ -159,12 +178,16 @@ export function MapRenderer() {
         model="pine_crooked"
         positions={positions.pine_crooked}
         collider="hull"
+        scale={1.1}
+        randomRotation
       />
 
       <Instancer
         model="pine"
         positions={positions.pine}
         collider="hull"
+        scale={1.2}
+        randomRotation
       />
 
       <Instancer
