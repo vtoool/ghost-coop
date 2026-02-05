@@ -75,6 +75,7 @@ interface ModelPositions {
   lantern_candle: Position3D[]
   bench: Position3D[]
   rocks: Position3D[]
+  road: Position3D[]
 }
 
 function useMapParser() {
@@ -93,6 +94,7 @@ function useMapParser() {
       lantern_candle: [],
       bench: [],
       rocks: [],
+      road: [],
     }
 
     const lanternPositions: Position3D[] = []
@@ -232,6 +234,11 @@ export function MapRenderer() {
         model="lantern_candle"
         positions={positions.lantern_candle}
         collider="cuboid"
+      />
+
+      <Instancer
+        model="road"
+        positions={positions.road}
       />
 
       {lanternPositions.map((pos, i) => (

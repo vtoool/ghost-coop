@@ -16,6 +16,7 @@ const MODEL_PATHS = {
   lantern_candle: '/models/environment/lantern-candle.glb',
   bench: '/models/environment/bench.glb',
   rocks: '/models/environment/rocks.glb',
+  road: '/models/environment/road.glb',
 } as const
 
 type ModelName = keyof typeof MODEL_PATHS
@@ -219,6 +220,7 @@ useGLTF.preload('/models/environment/crypt.glb')
 useGLTF.preload('/models/environment/lantern-candle.glb')
 useGLTF.preload('/models/environment/bench.glb')
 useGLTF.preload('/models/environment/rocks.glb')
+useGLTF.preload('/models/environment/road.glb')
 
 export type { ModelData, ObjectRegistryProps }
 export { MODEL_PATHS, type ModelName }
