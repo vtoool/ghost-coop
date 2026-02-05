@@ -42,8 +42,8 @@ export default function HunterController() {
   }, [currentAction, actions])
 
   const [, getKeyboardControls] = useKeyboardControls()
-  const moveSpeed = 6
-  const jumpVelocity = 8
+  const moveSpeed = 3
+  const jumpVelocity = 1
 
   useFrame(() => {
     if (!rigidBodyRef.current || !pivot) return
