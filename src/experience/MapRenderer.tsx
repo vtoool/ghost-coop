@@ -138,7 +138,7 @@ function useMapParser() {
           case '|':
             positions.stone_wall_straight_v.push(pos)
             break
-          case '#':
+          case '-':
             positions.stone_wall_straight_h.push(pos)
             break
           case '1':
@@ -168,6 +168,9 @@ function useMapParser() {
             break
           case '=':
             positions.road.push([pos[0], 0.02, pos[2]])
+            break
+          case 'G':
+            positions.gravestone_broken.push(pos)
             break
           default:
             if (positions[modelName as keyof ModelPositions]) {
@@ -222,7 +225,7 @@ export function MapRenderer() {
       <Instancer model="bench" positions={positions.bench} collider="hull" />
       <Instancer model="rocks" positions={positions.rocks} collider="hull" />
       <Instancer model="lantern_candle" positions={positions.lantern_candle} collider="cuboid" />
-      <Instancer model="road" positions={positions.road} scale={1.05} randomRotation={false} collider={undefined} />
+      <Instancer model="road" positions={positions.road} scale={20} randomRotation={false} collider={undefined} />
 
       {lanternPositions.map((pos, i) => (
         <GlowSprite key={`glow-${i}`} position={pos} />
