@@ -15,6 +15,7 @@ export default function HunterController() {
   const raycaster = useRef(new THREE.Raycaster())
   const downVector = useRef(new THREE.Vector3(0, -1, 0))
   const groundDistance = useRef(Infinity)
+  const wasGrounded = useRef(false)
 
   const { scene: characterScene, animations } = useGLTF('/models/characters/character-male-a.glb')
   const { actions } = useAnimations(animations, characterScene)
@@ -83,11 +84,15 @@ export default function HunterController() {
 
     const vel = rigidBodyRef.current.linvel()
 
+    const isGrounded = groundDistance.current < 2.0 && groundDistance.current > 0.1
+
     let targetY = vel.y
 
-    if (jump && groundDistance.current < 1.5) {
+    if (jump && isGrounded && !wasGrounded.current) {
       targetY = jumpVelocity
     }
+
+    wasGrounded.current = isGrounded
 
     const isMoving = moveDir.lengthSq() > 0.001
     if (isMoving) {
@@ -102,37 +107,52 @@ export default function HunterController() {
     player.setState('pos', { x: pos.x, y: pos.y, z: pos.z })
 
     let targetAnim = "idle"
-    if (groundDistance.current > 1.5) {
-      targetAnim = vel.y > 0 ? "jump" : "fall"
-    } else {
+    if (isGrounded) {
       targetAnim = moveDir.lengthSq() > 0.001 ? "sprint" : "idle"
+    } else {
+      targetAnim = vel.y > 0 ? "jump" : "fall"
     }
     if (currentAction !== targetAnim) {
       setCurrentAction(targetAnim)
     }
 
     if (shadowRef.current) {
-      const rayOrigin = new THREE.Vector3(pos.x, pos.y + 0.6, pos.z)
+      const rayOrigin = new THREE.Vector3(pos.x, 2.0, pos.z)
       raycaster.current.set(rayOrigin, downVector.current)
       raycaster.current.camera = camera
       raycaster.current.near = 0.1
       
       const intersects = raycaster.current.intersectObjects(scene.children, true)
       
-      const validHit = intersects.find(hit => {
+      let closestGroundHit = null
+      let closestGroundDist = Infinity
+      
+      for (const hit of intersects) {
         const obj = hit.object
-        if (obj.type === 'Sprite') return false
-        if (hit.distance < 0.3) return false
-        return true
-      })
-
-      if (validHit && validHit.distance < 10) {
-        groundDistance.current = validHit.distance
-        const dist = validHit.distance
-        shadowRef.current.visible = true
-        shadowRef.current.position.set(validHit.point.x, validHit.point.y + 0.02, validHit.point.z)
         
-        const scale = Math.max(0.3, 1 - (dist * 0.08))
+        if (obj.type === 'Sprite') continue
+        
+        if (hit.distance < 0.5) continue
+        
+        if (obj === characterScene || obj.parent === characterScene) continue
+        
+        if (hit.distance < closestGroundDist) {
+          closestGroundDist = hit.distance
+          closestGroundHit = hit
+        }
+      }
+
+      if (closestGroundHit) {
+        groundDistance.current = closestGroundHit.distance
+        shadowRef.current.position.set(
+          closestGroundHit.point.x, 
+          closestGroundHit.point.y + 0.02, 
+          closestGroundHit.point.z
+        )
+        shadowRef.current.visible = true
+        
+        const dist = closestGroundHit.distance
+        const scale = Math.max(0.3, 1 - (dist * 0.1))
         shadowRef.current.scale.setScalar(scale)
         
         const opacity = Math.max(0.2, 0.8 - (dist * 0.1))
@@ -172,7 +192,7 @@ export default function HunterController() {
       <mesh 
         ref={shadowRef} 
         rotation-x={-Math.PI / 2} 
-        position-y={0.02}
+        position-y={0}
         visible={false}
       >
         <planeGeometry args={[0.8, 0.8]} />
