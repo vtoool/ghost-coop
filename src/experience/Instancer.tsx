@@ -8,10 +8,10 @@ interface InstancerProps {
   model: string
   positions: number[][]
   rotation?: number
-  scale?: number
+  scale?: number | [number, number, number]
   randomRotation?: boolean
   randomSeed?: number
-  collider?: 'cuboid' | 'hull' | 'trimesh'
+  collider?: 'cuboid' | 'hull' | 'trimesh' | null
 }
 
 interface RigidBodyInstance {
@@ -49,6 +49,7 @@ export function Instancer({
   }, [positions])
 
   const instances: RigidBodyInstance[] = useMemo(() => {
+    const scaleArray = Array.isArray(scale) ? scale : [scale, scale, scale]
     return validPositions.map((pos, index) => {
       const instanceRotation = randomRotation
         ? seededRandom(randomSeed + index) * Math.PI * 2
@@ -58,7 +59,7 @@ export function Instancer({
         key: `${index}-${pos[0]}-${pos[1]}-${pos[2]}-${instanceRotation.toFixed(3)}`,
         position: [pos[0], pos[1], pos[2]],
         rotation: [0, instanceRotation, 0] as [number, number, number],
-        scale: [scale, scale, scale] as [number, number, number],
+        scale: scaleArray as [number, number, number],
       }
     })
   }, [validPositions, rotation, scale, randomRotation, randomSeed])
@@ -68,13 +69,15 @@ export function Instancer({
 
     meshRef.current.count = validPositions.length
 
+    const scaleArray = Array.isArray(scale) ? scale : [scale, scale, scale] as [number, number, number]
+
     for (let i = 0; i < validPositions.length; i++) {
       const pos = validPositions[i]
       const instance = instances[i]
 
       tempObject.position.set(pos[0], pos[1], pos[2])
       tempObject.rotation.set(0, instance.rotation[1], 0)
-      tempObject.scale.setScalar(scale)
+      tempObject.scale.set(scaleArray[0], scaleArray[1], scaleArray[2])
 
       tempObject.updateMatrix()
       meshRef.current!.setMatrixAt(i, tempObject.matrix)
@@ -97,6 +100,19 @@ export function Instancer({
   }
 
   const material = modelData.material ?? undefined
+
+  const isVisualOnly = collider === null || collider === undefined
+
+  if (isVisualOnly) {
+    return (
+      <instancedMesh
+        ref={meshRef}
+        args={[modelData.geometry, material, validPositions.length]}
+        castShadow
+        receiveShadow
+      />
+    )
+  }
 
   return (
     <InstancedRigidBodies

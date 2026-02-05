@@ -116,6 +116,12 @@ function useMapParser() {
           } else {
             positions.iron_fence.push(pos)
           }
+        } else if (modelName === 'road') {
+          for (let i = 0; i < 5; i++) {
+            const offsetX = (Math.random() - 0.5) * 1.6
+            const offsetZ = (Math.random() - 0.5) * 1.6
+            positions.road.push([pos[0] + offsetX, 0.02, pos[2] + offsetZ])
+          }
         } else {
           if (positions[modelName as keyof ModelPositions]) {
             positions[modelName as keyof ModelPositions].push(pos)
@@ -239,8 +245,9 @@ export function MapRenderer() {
       <Instancer
         model="road"
         positions={positions.road}
-        scale={3}
+        scale={[0.4, 0.15, 0.4]}
         randomRotation
+        collider={undefined}
       />
 
       {lanternPositions.map((pos, i) => (
