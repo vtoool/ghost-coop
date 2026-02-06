@@ -231,7 +231,7 @@ export function MapRenderer() {
       <Instancer model="bench" positions={positions.bench} collider="hull" />
       <Instancer model="rocks" positions={positions.rocks} collider="hull" />
       <Instancer model="lantern_candle" positions={positions.lantern_candle} collider="cuboid" />
-      <Instancer model="road" positions={positions.road} scale={60} randomRotation={false} collider={undefined} />
+      <Instancer model="road" positions={positions.road} scale={54} randomRotation={false} collider={undefined} />
 
       {lanternPositions.map((pos, i) => (
         <GlowSprite key={`glow-${i}`} position={pos} />
