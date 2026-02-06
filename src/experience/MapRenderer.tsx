@@ -216,10 +216,10 @@ export function MapRenderer() {
       {/* Stone Walls */}
       <Instancer model="stone_wall" positions={positions.stone_wall_straight_h} collider="cuboid" />
       <Instancer model="stone_wall" positions={positions.stone_wall_straight_v} rotation={Math.PI / 2} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tl} rotation={[0, 0, 0]} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tr} rotation={[0, -Math.PI / 2, 0]} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_br} rotation={[0, Math.PI, 0]} collider="cuboid" />
-      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_bl} rotation={[0, Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tl} rotation={[0, -Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_tr} rotation={[0, 0, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_br} rotation={[0, Math.PI / 2, 0]} collider="cuboid" />
+      <Instancer model="stone_wall_curve" positions={positions.stone_wall_corner_bl} rotation={[0, Math.PI, 0]} collider="cuboid" />
 
       <Instancer model="pine_crooked" positions={positions.pine_crooked} collider="hull" scale={1.1} randomRotation />
       <Instancer model="pine" positions={positions.pine} collider="hull" scale={1.2} randomRotation />
